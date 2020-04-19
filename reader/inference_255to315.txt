@@ -1,0 +1,2 @@
+/home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p226/p226_002.npy
+/home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p280/p280_025.npy

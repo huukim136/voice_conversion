@@ -1,0 +1,1 @@
+/home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/unseen/QOOM2COM073.npy
