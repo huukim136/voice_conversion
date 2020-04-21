@@ -9,7 +9,7 @@ min_level_db = -100
 hop_length = 275
 win_length = 1100
 n_fft = 2048
-sample_rate = 22050
+# sample_rate = 22050
 num_mels = 80
 fmin = 40
 
@@ -33,41 +33,37 @@ def extract_mel_spec(filename):
     '''
     extract and save both log-linear and log-Mel spectrograms.
     '''
-    y, sample_rate = librosa.load(filename)
-    # y = librosa.load(filename, sr= 22050)[0]
-    # peak = np.abs(y).max()
-    # if peak > 1.0:
-    #     y /= peak
-    spec = librosa.core.stft(y=y, 
-                             n_fft=2048, 
-                             hop_length=200, 
-                             win_length=800,
-                             window='hann',
-                             center=True,
-                             pad_mode='reflect')
-    spec= librosa.magphase(spec)[0]
-    log_spectrogram = np.log(spec).astype(np.float32)
+    # print (filename)
+    try:
+        y, sample_rate = librosa.load(filename, sr=16000)
 
-    # D = stft(y)
-    # S = amp_to_db(linear_to_mel(np.abs(D)))
-    # mel = normalize(S)
+        spec = librosa.core.stft(y=y, 
+                                 n_fft=2048, 
+                                 hop_length=200, 
+                                 win_length=800,
+                                 window='hann',
+                                 center=True,
+                                 pad_mode='reflect')
+        spec= librosa.magphase(spec)[0]
+        log_spectrogram = np.log(spec).astype(np.float32)
 
-    mel_spectrogram = librosa.feature.melspectrogram(S=spec, 
-                                                     sr=sample_rate, 
-                                                     n_mels=80,
-                                                     power=1.0, #actually not used given "S=spec"
-                                                     fmin=0.0,
-                                                     fmax=None,
-                                                     htk=False,
-                                                     norm=1
-                                                     )
-    log_mel_spectrogram = np.log(mel_spectrogram).astype(np.float32)
+     
 
-    # log_mel_spectrogram = mel.astype(np.float32)
-    
-    # np.save(file=filename.replace(".wav", ".spec"), arr=log_spectrogram)
-    # np.save(file=filename.replace(".wav", ".mel"), arr=log_mel_spectrogram)
-    np.save(file=filename.replace(".wav", ".npy"), arr=log_mel_spectrogram)
+        mel_spectrogram = librosa.feature.melspectrogram(S=spec, 
+                                                         sr=sample_rate, 
+                                                         n_mels=80,
+                                                         power=1.0, #actually not used given "S=spec"
+                                                         fmin=0.0,
+                                                         fmax=None,
+                                                         htk=False,
+                                                         norm=1
+                                                         )
+        log_mel_spectrogram = np.log(mel_spectrogram).astype(np.float32)
+
+
+        np.save(file=filename.replace(".wav", ".npy"), arr=log_mel_spectrogram)
+    except Exception:
+        print(filename)
     # file = filename.replace(".wav", ".npy")
     # os.remove(file)
 
@@ -113,6 +109,10 @@ def extract_dir(root, kind):
             abs_path = os.path.abspath(os.path.join(dirpath, f))
             if abs_path.endswith(ext):
                  abs_paths.append(abs_path)
+
+    # with open('list_files.txt', 'w') as f:
+    #     for item in abs_paths:
+    #         f.write("%s\n" % item)
     # import pdb
     # pdb.set_trace()       
     pool = Pool(cpu_count())
@@ -142,3 +142,5 @@ if __name__ == "__main__":
 
     extract_dir(path,kind)
     
+
+    # extract_mel_spec("/home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p245/p245_020.wav")
