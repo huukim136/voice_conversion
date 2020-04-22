@@ -30,7 +30,7 @@ class RefAttention(nn.Module):
 
 #    def forward(self, q, k, v, mask=None):             # original
     def forward(self, text_embedding, spk_embeddings, mask=None):
-        # pdb.set_trace()
+        #pdb.set_trace()
         B, len_q = text_embedding.size(0), text_embedding.size(1)      # B, t_L
         len_k = spk_embeddings.size(1)                           # p_l
         len_v = len_k
@@ -188,13 +188,14 @@ class Parrot(nn.Module):
             mask = self.get_mask(frame_spk_embeddings, mel_lengths, True)
         else:
             mask = self.get_mask(frame_spk_embeddings, mel_lengths)
-        mask = mask.expand(-1,hidden.size(1),-1)
-        contexts , scores = self.se_alignment(hidden, frame_spk_embeddings, mask)
+        #mask = mask.expand(-1,hidden.size(1),-1)
+        #contexts , scores = self.se_alignment(hidden, frame_spk_embeddings, mask)
         # pdb.set_trace()
         L = hidden.size(1)
         # hidden = torch.cat([hidden, contexts.detach()], -1)
         # hidden = torch.cat([hidden, contexts], -1)
-        hidden = hidden +  contexts
+        #hidden = hidden +  contexts
+        hidden = torch.cat([hidden, speaker_embedding.detach().unsqueeze(1).expand(-1, L, -1)], -1)
 
         predicted_mel, predicted_stop, alignments = self.decoder(hidden, mel_padded, text_lengths)
 
@@ -203,7 +204,7 @@ class Parrot(nn.Module):
         outputs = [predicted_mel, post_output, predicted_stop, alignments,
                   text_hidden, audio_seq2seq_hidden, audio_seq2seq_logit, audio_seq2seq_alignments, 
                   speaker_logit_from_mel, speaker_logit_from_mel_hidden,
-                  text_lengths, mel_lengths, scores]
+                  text_lengths, mel_lengths]
 
         #outputs = [predicted_mel, post_output, predicted_stop, alignments,
         #          text_hidden, audio_seq2seq_hidden, audio_seq2seq_logit, audio_seq2seq_alignments, 
@@ -254,12 +255,12 @@ class Parrot(nn.Module):
         else:
             hidden = self.merge_net.inference(audio_seq2seq_hidden)
 
-        contexts , scores = self.se_alignment(hidden, frame_spk_embeddings)
+        #contexts , scores = self.se_alignment(hidden, frame_spk_embeddings)
 
         L = hidden.size(1)
 
-        hidden = hidden +  contexts
-        # hidden = torch.cat([hidden, speaker_embedding.detach().unsqueeze(1).expand(-1, L, -1)], -1)
+        #hidden = hidden +  contexts
+        hidden = torch.cat([hidden, speaker_embedding.detach().unsqueeze(1).expand(-1, L, -1)], -1)
           
         predicted_mel, predicted_stop, alignments = self.decoder.inference(hidden)
 
@@ -268,5 +269,5 @@ class Parrot(nn.Module):
         return (predicted_mel, post_output, predicted_stop, alignments,
             text_hidden, audio_seq2seq_hidden, audio_seq2seq_phids, audio_seq2seq_alignments,
             #speaker_id, speaker_embedding)
-            speaker_id, scores)
+            speaker_id)
 

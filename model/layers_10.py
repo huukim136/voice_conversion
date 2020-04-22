@@ -64,9 +64,9 @@ class SpeakerEncoder(nn.Module):
                                       hparams.speaker_encoder_hidden_dim, 
                                       w_init_gain='tanh')
         self.projection3 = LinearNorm(hparams.speaker_encoder_hidden_dim, 
-                                      hparams.speaker_encoder_hidden_dim, 
+                                      hparams.speaker_encoder_hidden_dim//2, 
                                       w_init_gain='tanh')
-        self.projection2 = LinearNorm(hparams.speaker_encoder_hidden_dim, hparams.n_speakers) 
+        self.projection2 = LinearNorm(hparams.speaker_encoder_hidden_dim//2, hparams.n_speakers) 
     
     def forward(self, x, input_lengths):
         '''

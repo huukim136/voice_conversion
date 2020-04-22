@@ -58,7 +58,7 @@ class ParrotLogger(SummaryWriter):
             text_hidden, mel_hidden,  text_logit_from_mel_hidden, \
             audio_seq2seq_alignments, \
             speaker_logit_from_mel, speaker_logit_from_mel_hidden, \
-            text_lengths, mel_lengths, SE_alignments = y_pred
+            text_lengths, mel_lengths = y_pred
 
         #predicted_mel, post_output, predicted_stop, alignments, \
         #    text_hidden, mel_hidden,  text_logit_from_mel_hidden, \
@@ -83,7 +83,7 @@ class ParrotLogger(SummaryWriter):
 
         alignments = alignments.data.cpu().numpy()
         audio_seq2seq_alignments = audio_seq2seq_alignments.data.cpu().numpy()
-        SE_alignments = SE_alignments.data.cpu().numpy()
+        #SE_alignments = SE_alignments.data.cpu().numpy()
 
         self.add_image(
             "%s.alignment"%task,
@@ -98,10 +98,10 @@ class ParrotLogger(SummaryWriter):
             plot_alignment_to_numpy(audio_seq2seq_alignments[idx].T),
             iteration, dataformats='HWC')
 
-        self.add_image(
-            "%s.SE_alignments"%task,
-            plot_alignment_to_numpy(SE_alignments[idx].T),
-            iteration, dataformats='HWC')
+        #self.add_image(
+        #    "%s.SE_alignments"%task,
+        #    plot_alignment_to_numpy(SE_alignments[idx].T),
+        #    iteration, dataformats='HWC')
 
         self.add_image(
             "%s.mel_target"%task,

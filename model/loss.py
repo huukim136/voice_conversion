@@ -69,7 +69,7 @@ class ParrotLoss(nn.Module):
             text_hidden, mel_hidden, text_logit_from_mel_hidden, \
             audio_seq2seq_alignments, \
             speaker_logit_from_mel, speaker_logit_from_mel_hidden, \
-            text_lengths, mel_lengths, SE_alignments = model_outputs
+            text_lengths, mel_lengths = model_outputs
 
         #predicted_mel, post_output, predicted_stop, alignments,\
         #    text_hidden, mel_hidden, text_logit_from_mel_hidden, \
