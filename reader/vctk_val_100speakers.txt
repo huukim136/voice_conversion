@@ -2976,7 +2976,6 @@
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p323/p323_408.npy
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p323/p323_402.npy
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p323/p323_405.npy
-/home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p323/p323_424.npy
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p323/p323_418.npy
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p323/p323_422.npy
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p323/p323_415.npy

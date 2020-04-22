@@ -4808,7 +4808,6 @@
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p341/p341_148.npy
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p341/p341_239.npy
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p341/p341_256.npy
-/home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p341/p341_101.npy
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p341/p341_172.npy
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p341/p341_349.npy
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p341/p341_322.npy
@@ -7367,7 +7366,6 @@
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p351/p351_270.npy
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p351/p351_385.npy
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p351/p351_155.npy
-/home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p351/p351_361.npy
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p351/p351_279.npy
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p351/p351_313.npy
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p351/p351_142.npy
@@ -13572,7 +13570,6 @@
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p300/p300_365.npy
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p300/p300_153.npy
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p300/p300_069.npy
-/home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p300/p300_155.npy
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p300/p300_003.npy
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p300/p300_270.npy
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p300/p300_374.npy
@@ -21971,7 +21968,6 @@
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p345/p345_087.npy
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p345/p345_118.npy
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p345/p345_366.npy
-/home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p345/p345_292.npy
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p345/p345_130.npy
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p345/p345_134.npy
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p345/p345_287.npy
@@ -27781,7 +27777,6 @@
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p306/p306_325.npy
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p306/p306_035.npy
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p306/p306_193.npy
-/home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p306/p306_352.npy
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p306/p306_313.npy
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p306/p306_303.npy
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p306/p306_326.npy
@@ -27802,7 +27797,6 @@
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p306/p306_046.npy
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p306/p306_099.npy
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p306/p306_163.npy
-/home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p306/p306_151.npy
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p306/p306_244.npy
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p306/p306_026.npy
 /home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/VCTK/wav48/p306/p306_033.npy
