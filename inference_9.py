@@ -23,7 +23,7 @@ hparams = create_hparams()
 
 #generation list
 # hlist = '/home/jxzhang/Documents/DataSets/VCTK/list/hold_english.list'
-tlist = '/home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/inference_255to315.txt'
+tlist = '/home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/inference_280to226.txt'
 
 # use seen (tlist) or unseen list (hlist)
 test_list = tlist
@@ -91,7 +91,7 @@ def recover_wav(mel, wav_path, ismel=False,
     mel = np.exp(mel)
 
     if ismel:
-        filters = librosa.filters.mel(sr=22050, n_fft=2048, n_mels=80)
+        filters = librosa.filters.mel(sr=16000, n_fft=2048, n_mels=80)
         inv_filters = np.linalg.pinv(filters)
         spec = np.dot(inv_filters, mel)
     else:
@@ -108,7 +108,7 @@ def recover_wav(mel, wav_path, ismel=False,
     shape = spec.shape[1] * hop_length -  hop_length + 1
 
     y = _griffin_lim(spec, shape)
-    scipy.io.wavfile.write(wav_path, 22050, y)
+    scipy.io.wavfile.write(wav_path, 16000, y)
     return y
 
 
