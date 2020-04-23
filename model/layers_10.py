@@ -76,7 +76,7 @@ class SpeakerEncoder(nn.Module):
          logits [batch_size, n_speakers]
          embeddings [batch_size, embedding_dim]
         '''
-        # pdb.set_trace()
+        #pdb.set_trace()
         x = x.transpose(1,2)
 
         x_sorted, sorted_lengths, initial_index = sort_batch(x, input_lengths)
