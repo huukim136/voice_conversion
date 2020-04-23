@@ -258,7 +258,7 @@ class Parrot(nn.Module):
 
         L = hidden.size(1)
 
-        hidden = hidden +  0.5*contexts
+        hidden = hidden #+  0.5*contexts
         # hidden = torch.cat([hidden, speaker_embedding.detach().unsqueeze(1).expand(-1, L, -1)], -1)
           
         predicted_mel, predicted_stop, alignments = self.decoder.inference(hidden)
