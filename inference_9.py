@@ -27,7 +27,7 @@ tlist = '/home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/inf
 
 # use seen (tlist) or unseen list (hlist)
 test_list = tlist
-checkpoint_path='outdir_100/checkpoint_188000'
+checkpoint_path='outdir_100_original/checkpoint_80000'
 # TTS or VC task?
 input_text= False
 # number of utterances for generation
@@ -150,7 +150,7 @@ with torch.no_grad():
         mel_padded = mel_padded.data.cpu().numpy()[0]
         predicted_mel, post_output, predicted_stop, alignments, \
             text_hidden, audio_seq2seq_hidden, audio_seq2seq_phids, audio_seq2seq_alignments, \
-            speaker_id, SE_alignment = model.inference(x, input_text, reference_mel, hparams.beam_width)
+            speaker_id = model.inference(x, input_text, reference_mel, hparams.beam_width)
 
         post_output = post_output.data.cpu().numpy()[0]
         predicted_mel = predicted_mel.data.cpu().numpy()[0]
