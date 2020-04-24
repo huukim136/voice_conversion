@@ -16,18 +16,18 @@ from model import  lcm
 from train import load_model
 import scipy.io.wavfile
 import torch.nn.functional as F
-
+import pdb
 
 ########### Configuration ###########
 hparams = create_hparams()
 
 #generation list
 # hlist = '/home/jxzhang/Documents/DataSets/VCTK/list/hold_english.list'
-tlist = '/home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/inference_255to315.txt'
+tlist = '/home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/inference_280to226.txt'
 
 # use seen (tlist) or unseen list (hlist)
 test_list = tlist
-checkpoint_path='outdir_100speaker_ref_attention_addition_normed/checkpoint_74000'
+checkpoint_path='outdir_100/checkpoint_188000'
 # TTS or VC task?
 input_text= False
 # number of utterances for generation
@@ -51,8 +51,9 @@ def plot_data(data, fn, figsize=(12, 4)):
 model = load_model(hparams)
 
 model.load_state_dict(torch.load(checkpoint_path)['state_dict'])
-_ = model.eval()
 
+_ = model.eval()
+# pdb.set_trace()
 test_set = TextMelIDLoader(test_list,hparams.mel_mean, hparams.mel_std, shuffle=True)
 sample_list = test_set.file_path_list
 collate_fn = TextMelIDCollate(lcm(hparams.n_frames_per_step_encoder,
@@ -91,7 +92,7 @@ def recover_wav(mel, wav_path, ismel=False,
     mel = np.exp(mel)
 
     if ismel:
-        filters = librosa.filters.mel(sr=22050, n_fft=2048, n_mels=80)
+        filters = librosa.filters.mel(sr=16000, n_fft=2048, n_mels=80)
         inv_filters = np.linalg.pinv(filters)
         spec = np.dot(inv_filters, mel)
     else:
@@ -108,7 +109,7 @@ def recover_wav(mel, wav_path, ismel=False,
     shape = spec.shape[1] * hop_length -  hop_length + 1
 
     y = _griffin_lim(spec, shape)
-    scipy.io.wavfile.write(wav_path, 22050, y)
+    scipy.io.wavfile.write(wav_path, 16000, y)
     return y
 
 
