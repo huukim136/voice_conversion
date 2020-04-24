@@ -156,7 +156,7 @@ with torch.no_grad():
         predicted_mel = predicted_mel.data.cpu().numpy()[0]
         alignments = alignments.data.cpu().numpy()[0].T
         audio_seq2seq_alignments = audio_seq2seq_alignments.data.cpu().numpy()[0].T
-        SE_alignment = SE_alignment.data.cpu().numpy()[0].T
+        #SE_alignment = SE_alignment.data.cpu().numpy()[0].T
 
         text_hidden = text_hidden.data.cpu().numpy()[0].T #-> [hidden_dim, max_text_len]
         audio_seq2seq_hidden = audio_seq2seq_hidden.data.cpu().numpy()[0].T
@@ -193,8 +193,8 @@ with torch.no_grad():
                 
         plot_data([alignments, audio_seq2seq_alignments], 
             os.path.join(path_save, 'Ali_%s_ref_%s_%s.pdf'%(sample_id, ref_sp, task)))
-        plot_data([alignments,SE_alignment], 
-            os.path.join(path_save, 'SE_alignment%s_ref_%s_%s.pdf'%(sample_id, ref_sp, task)))
+        #plot_data([alignments,SE_alignment], 
+        #    os.path.join(path_save, 'SE_alignment%s_ref_%s_%s.pdf'%(sample_id, ref_sp, task)))
         
         plot_data([np.hstack([text_hidden, audio_seq2seq_hidden])], 
             os.path.join(path_save, 'Hid_%s_ref_%s_%s.pdf'%(sample_id, ref_sp, task)))
