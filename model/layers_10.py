@@ -64,9 +64,9 @@ class SpeakerEncoder(nn.Module):
                                       hparams.speaker_encoder_hidden_dim, 
                                       w_init_gain='tanh')
         self.projection3 = LinearNorm(hparams.speaker_encoder_hidden_dim, 
-                                      hparams.speaker_encoder_hidden_dim//2, 
+                                      hparams.speaker_encoder_hidden_dim, 
                                       w_init_gain='tanh')
-        self.projection2 = LinearNorm(hparams.speaker_encoder_hidden_dim//2, hparams.n_speakers) 
+        self.projection2 = LinearNorm(hparams.speaker_encoder_hidden_dim, hparams.n_speakers) 
     
     def forward(self, x, input_lengths):
         '''
@@ -76,7 +76,7 @@ class SpeakerEncoder(nn.Module):
          logits [batch_size, n_speakers]
          embeddings [batch_size, embedding_dim]
         '''
-        # pdb.set_trace()
+        #pdb.set_trace()
         x = x.transpose(1,2)
 
         x_sorted, sorted_lengths, initial_index = sort_batch(x, input_lengths)
