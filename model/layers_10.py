@@ -67,6 +67,7 @@ class SpeakerEncoder(nn.Module):
                                       hparams.speaker_encoder_hidden_dim, 
                                       w_init_gain='tanh')
         self.projection2 = LinearNorm(hparams.speaker_encoder_hidden_dim, hparams.n_speakers) 
+        self.projection4 = LinearNorm(hparams.speaker_encoder_hidden_dim, hparams.n_speakers)
     
     def forward(self, x, input_lengths):
         '''
@@ -94,10 +95,9 @@ class SpeakerEncoder(nn.Module):
 
         frame_spk_embeddings = F.tanh(self.projection1(outputs))
         frame_spk_embeddings = frame_spk_embeddings[initial_index]
+        frame_spk_embeddings_logits = self.projection4(frame_spk_embeddings)
         # L2 normalizing #
         frame_spk_embeddings = frame_spk_embeddings / torch.norm(frame_spk_embeddings, dim=2, keepdim=True)
-        # logits = self.projection2(outputs)
-
 
         outputs = torch.sum(outputs,dim=1) / sorted_lengths.unsqueeze(1).float() # mean pooling -> [batch_size, dim]
 
@@ -107,7 +107,7 @@ class SpeakerEncoder(nn.Module):
         embeddings = outputs / torch.norm(outputs, dim=1, keepdim=True)
         logits = self.projection2(outputs)
 
-        return logits, embeddings, frame_spk_embeddings
+        return logits, embeddings, frame_spk_embeddings, frame_spk_embeddings_logits
     
     def inference(self, x): 
         

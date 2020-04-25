@@ -159,7 +159,7 @@ class Parrot(nn.Module):
         start_embedding = self.embedding(start_embedding)
 
         # -> [B, speaker_embedding_dim] 
-        speaker_logit_from_mel, speaker_embedding, frame_spk_embeddings = self.speaker_encoder(mel_padded, mel_lengths) 
+        speaker_logit_from_mel, speaker_embedding, frame_spk_embeddings, frame_spk_embeddings_logits = self.speaker_encoder(mel_padded, mel_lengths) 
         #speaker_embedding = self.speaker_encoder(mel_padded, mel_lengths) 
 
         if self.spemb_input:
@@ -194,7 +194,7 @@ class Parrot(nn.Module):
         L = hidden.size(1)
         # hidden = torch.cat([hidden, contexts.detach()], -1)
         # hidden = torch.cat([hidden, contexts], -1)
-        hidden = hidden +  contexts
+        hidden = hidden  +  contexts
 
         predicted_mel, predicted_stop, alignments = self.decoder(hidden, mel_padded, text_lengths)
 
@@ -202,7 +202,7 @@ class Parrot(nn.Module):
 
         outputs = [predicted_mel, post_output, predicted_stop, alignments,
                   text_hidden, audio_seq2seq_hidden, audio_seq2seq_logit, audio_seq2seq_alignments, 
-                  speaker_logit_from_mel, speaker_logit_from_mel_hidden,
+                  speaker_logit_from_mel, frame_spk_embeddings_logits, speaker_logit_from_mel_hidden,
                   text_lengths, mel_lengths, scores]
 
         #outputs = [predicted_mel, post_output, predicted_stop, alignments,
@@ -230,7 +230,7 @@ class Parrot(nn.Module):
         start_embedding = self.embedding(start_embedding) # [1, embedding_dim]
 
         #-> [B, text_len+1, hidden_dim] [B, text_len+1, n_symbols] [B, text_len+1, T/r]
-        speaker_id, speaker_embedding, frame_spk_embeddings = self.speaker_encoder.inference(mel_reference)
+        speaker_id, speaker_embedding, frame_spk_embeddings, frame_spk_embeddings_logits = self.speaker_encoder.inference(mel_reference)
         if spk_embeddings_save:
             spk_embed = speaker_embedding.data.cpu().numpy()[0]
             spk_embeddings_path = os.path.join(path_save, 'spk_embedding.npy')
@@ -258,7 +258,7 @@ class Parrot(nn.Module):
 
         L = hidden.size(1)
 
-        hidden = hidden + contexts
+        hidden = contexts
         # hidden = torch.cat([hidden, speaker_embedding.detach().unsqueeze(1).expand(-1, L, -1)], -1)
           
         predicted_mel, predicted_stop, alignments = self.decoder.inference(hidden)
