@@ -67,33 +67,33 @@ class Parrot(nn.Module):
 
         self.audio_seq2seq = AudioSeq2seq(hparams)
 
-        self.merge_net = MergeNet(hparams)
+        # self.merge_net = MergeNet(hparams)
 
-        self.speaker_encoder = SpeakerEncoder(hparams)
+        # self.speaker_encoder = SpeakerEncoder(hparams)
 
         #self.gst = GST(hparams)
 
         self.speaker_classifier = SpeakerClassifier(hparams)
 
-        self.decoder = Decoder(hparams)
+        # self.decoder = Decoder(hparams)
         
-        self.postnet = PostNet(hparams)
+        # self.postnet = PostNet(hparams)
 
         self.spemb_input = hparams.spemb_input
 
-        self.se_alignment = RefAttention(hparams)
+        # self.se_alignment = RefAttention(hparams)
 
     def grouped_parameters(self,):
 
         params_group1 = [p for p in self.embedding.parameters()]
         params_group1.extend([p for p in self.text_encoder.parameters()])
         params_group1.extend([p for p in self.audio_seq2seq.parameters()])
-        params_group1.extend([p for p in self.speaker_encoder.parameters()])
-        params_group1.extend([p for p in self.se_alignment.parameters()])
+        # params_group1.extend([p for p in self.speaker_encoder.parameters()])
+        # params_group1.extend([p for p in self.se_alignment.parameters()])
         #params_group1.extend([p for p in self.gst.parameters()])
-        params_group1.extend([p for p in self.merge_net.parameters()])
-        params_group1.extend([p for p in self.decoder.parameters()])
-        params_group1.extend([p for p in self.postnet.parameters()])
+        # params_group1.extend([p for p in self.merge_net.parameters()])
+        # params_group1.extend([p for p in self.decoder.parameters()])
+        # params_group1.extend([p for p in self.postnet.parameters()])
 
         return params_group1, [p for p in self.speaker_classifier.parameters()]
 
@@ -159,8 +159,7 @@ class Parrot(nn.Module):
         start_embedding = self.embedding(start_embedding)
 
         # -> [B, speaker_embedding_dim] 
-        speaker_logit_from_mel, speaker_embedding, frame_spk_embeddings = self.speaker_encoder(mel_padded, mel_lengths) 
-        #speaker_embedding = self.speaker_encoder(mel_padded, mel_lengths) 
+        # speaker_logit_from_mel, speaker_embedding, frame_spk_embeddings = self.speaker_encoder(mel_padded, mel_lengths) 
 
         if self.spemb_input:
             T = mel_padded.size(2)
@@ -176,34 +175,32 @@ class Parrot(nn.Module):
         
         speaker_logit_from_mel_hidden = self.speaker_classifier(audio_seq2seq_hidden) # -> [B, text_len, n_speakers]
 
-        if input_text:
-            hidden = self.merge_net(text_hidden, text_lengths)
-            # speaker_logit_from_mel, speaker_embedding, SE_alignments = self.speaker_encoder(mel_padded, mel_lengths,text_hidden,text_lengths )
-        else:
-            hidden = self.merge_net(audio_seq2seq_hidden, text_lengths)
-            # speaker_logit_from_mel, speaker_embedding, SE_alignments = self.speaker_encoder(mel_padded, mel_lengths,audio_seq2seq_hidden,text_lengths )
+        # if input_text:
+        #     hidden = self.merge_net(text_hidden, text_lengths)
 
-        if (frame_spk_embeddings.size(1) != mel_lengths[torch.argmax(mel_lengths)]):
+        # else:
+        #     hidden = self.merge_net(audio_seq2seq_hidden, text_lengths)
+        
+        # if (frame_spk_embeddings.size(1) != mel_lengths[torch.argmax(mel_lengths)]):
 
-            mask = self.get_mask(frame_spk_embeddings, mel_lengths, True)
-        else:
-            mask = self.get_mask(frame_spk_embeddings, mel_lengths)
-        mask = mask.expand(-1,hidden.size(1),-1)
-        contexts , scores = self.se_alignment(hidden, frame_spk_embeddings, mask)
-        # pdb.set_trace()
-        L = hidden.size(1)
-        # hidden = torch.cat([hidden, contexts.detach()], -1)
-        # hidden = torch.cat([hidden, contexts], -1)
-        hidden = hidden +  contexts
+        #     mask = self.get_mask(frame_spk_embeddings, mel_lengths, True)
+        # else:
+        #     mask = self.get_mask(frame_spk_embeddings, mel_lengths)
+        # mask = mask.expand(-1,hidden.size(1),-1)
+        # contexts , scores = self.se_alignment(hidden, frame_spk_embeddings, mask)
+        # # pdb.set_trace()
+        # L = hidden.size(1)
 
-        predicted_mel, predicted_stop, alignments = self.decoder(hidden, mel_padded, text_lengths)
+        # hidden = hidden +  contexts
 
-        post_output = self.postnet(predicted_mel)
+        # predicted_mel, predicted_stop, alignments = self.decoder(hidden, mel_padded, text_lengths)
 
-        outputs = [predicted_mel, post_output, predicted_stop, alignments,
+        # post_output = self.postnet(predicted_mel)
+
+        outputs = [
                   text_hidden, audio_seq2seq_hidden, audio_seq2seq_logit, audio_seq2seq_alignments, 
-                  speaker_logit_from_mel, speaker_logit_from_mel_hidden,
-                  text_lengths, mel_lengths, scores]
+                  speaker_logit_from_mel_hidden,
+                  text_lengths, mel_lengths]
 
         #outputs = [predicted_mel, post_output, predicted_stop, alignments,
         #          text_hidden, audio_seq2seq_hidden, audio_seq2seq_logit, audio_seq2seq_alignments, 
