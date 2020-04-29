@@ -127,8 +127,6 @@ class Parrot(nn.Module):
         mask = mask.unsqueeze(1)
         return mask
 
-
-
     def forward(self, inputs, input_text):
         '''
         text_input_padded [batch_size, max_text_len]
@@ -190,7 +188,10 @@ class Parrot(nn.Module):
         #     mask = self.get_mask(frame_spk_embeddings, mel_lengths)
         
         lstm_output = lstm_output + contexts
-        speaker_logit_from_mel, spk_embedding = self.dense_block(lstm_output,mel_lengths)
+        mask_mel = self.get_mask(mel_lengths)
+        mask_mel = mask_mel.transpose(1,2)
+        mask_mel = mask_mel.expand(-1,-1,lstm_output.size(2))
+        speaker_logit_from_mel, spk_embedding = self.dense_block(lstm_output,mel_lengths, mask_mel)
 
         # predicted_mel, predicted_stop, alignments = self.decoder(hidden, mel_padded, text_lengths)
 

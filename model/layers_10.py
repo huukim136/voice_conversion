@@ -90,9 +90,6 @@ class SpeakerEncoder(nn.Module):
 
         # outputs = F.tanh(self.projection1(outputs))
         outputs = outputs[initial_index]
-        # # L2 normalizing #
-        # embeddings = outputs / torch.norm(outputs, dim=1, keepdim=True)
-        # logits = self.projection2(outputs)
 
         return outputs
     
@@ -131,7 +128,7 @@ class DenseBlock(nn.Module):
                                       w_init_gain='tanh')
         self.projection3 = LinearNorm(hparams.speaker_encoder_hidden_dim, hparams.n_speakers) 
     
-    def forward(self, x, input_lengths):
+    def forward(self, x, input_lengths, mask_mel):
         '''
          x  [batch_size, mel_bins, T]
 
@@ -145,6 +142,7 @@ class DenseBlock(nn.Module):
 
         x = F.tanh(self.projection1(x))
         x = F.tanh(self.projection2(x))
+        x[~mask_mel]= 0
         x = torch.sum(x,dim=1) / input_lengths.unsqueeze(1).float() # mean pooling -> [batch_size, dim]
 
         logits = self.projection3(x)
