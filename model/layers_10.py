@@ -63,9 +63,6 @@ class SpeakerEncoder(nn.Module):
         self.projection1 = LinearNorm(hparams.speaker_encoder_hidden_dim, 
                                       hparams.speaker_encoder_hidden_dim, 
                                       w_init_gain='tanh')
-        self.projection3 = LinearNorm(hparams.speaker_encoder_hidden_dim, 
-                                      hparams.speaker_encoder_hidden_dim, 
-                                      w_init_gain='tanh')
         self.projection2 = LinearNorm(hparams.speaker_encoder_hidden_dim, hparams.n_speakers) 
     
     def forward(self, x, input_lengths):
@@ -78,7 +75,6 @@ class SpeakerEncoder(nn.Module):
         '''
         # pdb.set_trace()
         x = x.transpose(1,2)
-
         x_sorted, sorted_lengths, initial_index = sort_batch(x, input_lengths)
 
         x = nn.utils.rnn.pack_padded_sequence(
@@ -89,25 +85,16 @@ class SpeakerEncoder(nn.Module):
 
         outputs, _ = nn.utils.rnn.pad_packed_sequence(
             outputs, batch_first=True)
-
+ 
         # outputs = torch.sum(outputs,dim=1) / sorted_lengths.unsqueeze(1).float() # mean pooling -> [batch_size, dim]
 
-        frame_spk_embeddings = F.tanh(self.projection1(outputs))
-        frame_spk_embeddings = frame_spk_embeddings[initial_index]
-        # L2 normalizing #
-        frame_spk_embeddings = frame_spk_embeddings / torch.norm(frame_spk_embeddings, dim=2, keepdim=True)
+        # outputs = F.tanh(self.projection1(outputs))
+        outputs = outputs[initial_index]
+        # # L2 normalizing #
+        # embeddings = outputs / torch.norm(outputs, dim=1, keepdim=True)
         # logits = self.projection2(outputs)
 
-
-        outputs = torch.sum(outputs,dim=1) / sorted_lengths.unsqueeze(1).float() # mean pooling -> [batch_size, dim]
-
-        outputs = F.tanh(self.projection3(outputs))
-        outputs = outputs[initial_index]
-        # L2 normalizing #
-        embeddings = outputs / torch.norm(outputs, dim=1, keepdim=True)
-        logits = self.projection2(outputs)
-
-        return logits, embeddings, frame_spk_embeddings
+        return outputs
     
     def inference(self, x): 
         
@@ -128,6 +115,62 @@ class SpeakerEncoder(nn.Module):
         pid = torch.argmax(logits, dim=1)
 
         return pid, embeddings, frame_spk_embeddings
+
+class DenseBlock(nn.Module):
+    '''
+    -  Simple 2 layer bidirectional LSTM with global mean_pooling
+
+    '''
+    def __init__(self, hparams):
+        super(DenseBlock, self).__init__()
+        self.projection1 = LinearNorm(hparams.speaker_encoder_hidden_dim, 
+                                      hparams.speaker_encoder_hidden_dim, 
+                                      w_init_gain='tanh')
+        self.projection2 = LinearNorm(hparams.speaker_encoder_hidden_dim, 
+                                      hparams.speaker_encoder_hidden_dim, 
+                                      w_init_gain='tanh')
+        self.projection3 = LinearNorm(hparams.speaker_encoder_hidden_dim, hparams.n_speakers) 
+    
+    def forward(self, x, input_lengths):
+        '''
+         x  [batch_size, mel_bins, T]
+
+         return 
+         logits [batch_size, n_speakers]
+         embeddings [batch_size, embedding_dim]
+        '''
+        # pdb.set_trace()
+
+        # outputs = torch.sum(outputs,dim=1) / sorted_lengths.unsqueeze(1).float() # mean pooling -> [batch_size, dim]
+
+        x = F.tanh(self.projection1(x))
+        x = F.tanh(self.projection2(x))
+        x = torch.sum(x,dim=1) / input_lengths.unsqueeze(1).float() # mean pooling -> [batch_size, dim]
+
+        logits = self.projection3(x)
+
+        return logits, x
+    
+    def inference(self, x): 
+        
+        x = x.transpose(1,2)
+        self.lstm.flatten_parameters()
+        outputs, _ = self.lstm(x)
+
+        # outputs = torch.sum(outputs,dim=1) / float(outputs.size(1)) # mean pooling -> [batch_size, dim]
+        frame_spk_embeddings = F.tanh(self.projection1(outputs))
+        frame_spk_embeddings = frame_spk_embeddings / torch.norm(frame_spk_embeddings, dim=2, keepdim=True)
+        # logits = self.projection2(outputs)
+
+        outputs = torch.sum(outputs,dim=1) / float(outputs.size(1))
+        outputs = F.tanh(self.projection3(outputs))
+        embeddings = outputs / torch.norm(outputs, dim=1, keepdim=True)
+        logits = self.projection2(outputs)
+
+        pid = torch.argmax(logits, dim=1)
+
+        return pid, embeddings, frame_spk_embeddings
+
 
 class Speaker_Text_Alignments(nn.Module):
     '''
@@ -660,10 +703,11 @@ class TextEncoder(nn.Module):
         else:
             print('Must be relu, tanh or linear.')
             assert False
-        
-        #self.projection = nn.LinearNorm(hparams.encoder_embedding_dim, 
-        #    hparams.encoder_embedding_dim,
-        #    w_init_gain='relu') # fusing bi-directional info
+
+        # self.project_to_n_symbols= LinearNorm(hparams.encoder_embedding_dim,
+        #     hparams.n_symbols + 1) # plus the <eos>
+        self.project_to_n_symbols= LinearNorm(hparams.encoder_embedding_dim,
+            hparams.n_symbols)    
 
     def forward(self, x, input_lengths):
         '''
@@ -681,7 +725,6 @@ class TextEncoder(nn.Module):
         x_sorted, sorted_lengths, initial_index = sort_batch(x, input_lengths)
 
         # pytorch tensor are not reversible, hence the conversion
-        #input_lengths = input_lengths.cpu().numpy()
         sorted_lengths = sorted_lengths.cpu().numpy()
 
         x = nn.utils.rnn.pack_padded_sequence(
@@ -695,7 +738,8 @@ class TextEncoder(nn.Module):
 
         outputs = self.projection(outputs)
         outputs = outputs/torch.norm(outputs, dim=2,keepdim=True)
-        return outputs[initial_index]
+        logits = self.project_to_n_symbols(F.dropout(outputs, 0.5, self.training))
+        return outputs[initial_index], logits
 
     def inference(self, x):
         for conv in self.convolutions:
