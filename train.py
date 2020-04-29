@@ -134,8 +134,8 @@ def validate(model, criterion, valset, iteration, batch_size, n_gpus,
                                 pin_memory=False, collate_fn=collate_fn)
 
         val_loss_tts, val_loss_vc = 0.0, 0.0
-        reduced_val_tts_losses, reduced_val_vc_losses = np.zeros([4], dtype=np.float32), np.zeros([4], dtype=np.float32)
-        reduced_val_tts_acces, reduced_val_vc_acces = np.zeros([2], dtype=np.float32), np.zeros([2], dtype=np.float32)
+        reduced_val_tts_losses, reduced_val_vc_losses = np.zeros([5], dtype=np.float32), np.zeros([5], dtype=np.float32)
+        reduced_val_tts_acces, reduced_val_vc_acces = np.zeros([3], dtype=np.float32), np.zeros([3], dtype=np.float32)
 
         for i, batch in enumerate(val_loader):
 

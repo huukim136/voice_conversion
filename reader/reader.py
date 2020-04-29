@@ -122,7 +122,7 @@ class TextMelIDLoader(torch.utils.data.Dataset):
         for ph in text:
             # print("ph ", ph)
             text_input.append(ph2id[ph])
-        text_input.append(41)
+        # text_input.append(41)
         
         return text_input
 

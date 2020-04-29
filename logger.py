@@ -23,19 +23,19 @@ class ParrotLogger(SummaryWriter):
         # self.add_scalar("training.loss.stop",  reduced_losses[2], iteration)
         self.add_scalar("training.loss.contr", reduced_losses[0], iteration)
         # self.add_scalar("training.loss.consi", reduced_losses[4], iteration)
-        # self.add_scalar("training.loss.spenc", reduced_losses[5], iteration)
-        self.add_scalar("training.loss.spcla", reduced_losses[1], iteration)
-        self.add_scalar("training.loss.texcl", reduced_losses[2], iteration)
-        self.add_scalar("training.loss.spadv", reduced_losses[3], iteration)
+        self.add_scalar("training.loss.spenc", reduced_losses[1], iteration)
+        self.add_scalar("training.loss.spcla", reduced_losses[2], iteration)
+        self.add_scalar("training.loss.texcl", reduced_losses[3], iteration)
+        self.add_scalar("training.loss.spadv", reduced_losses[4], iteration)
 
         self.add_scalar("grad.norm", grad_norm, iteration)
         self.add_scalar("learning.rate", learning_rate, iteration)
         self.add_scalar("duration", duration, iteration)
 
         #pdb.set_trace()
-        # self.add_scalar('training.acc.spenc', reduced_acces[0], iteration)
-        self.add_scalar('training.acc.spcla', reduced_acces[0], iteration)
-        self.add_scalar('training.acc.texcl', reduced_acces[1], iteration)
+        self.add_scalar('training.acc.spenc', reduced_acces[0], iteration)
+        self.add_scalar('training.acc.spcla', reduced_acces[1], iteration)
+        self.add_scalar('training.acc.texcl', reduced_acces[2], iteration)
     
     def log_validation(self, reduced_loss, reduced_losses, reduced_acces, model, y, y_pred, iteration, task):
 
@@ -45,14 +45,14 @@ class ParrotLogger(SummaryWriter):
         # self.add_scalar("validation.loss.%s.stop"%task,  reduced_losses[2], iteration)
         self.add_scalar("validation.loss.%s.contr"%task, reduced_losses[0], iteration)
         # self.add_scalar("validation.loss.%s.consi"%task, reduced_losses[4], iteration)
-        # self.add_scalar("validation.loss.%s.spenc"%task, reduced_losses[5], iteration)
-        self.add_scalar("validation.loss.%s.spcla"%task, reduced_losses[1], iteration)
-        self.add_scalar("validation.loss.%s.texcl"%task, reduced_losses[2], iteration)
-        self.add_scalar("validation.loss.%s.spadv"%task, reduced_losses[3], iteration)
+        self.add_scalar("validation.loss.%s.spenc"%task, reduced_losses[1], iteration)
+        self.add_scalar("validation.loss.%s.spcla"%task, reduced_losses[2], iteration)
+        self.add_scalar("validation.loss.%s.texcl"%task, reduced_losses[3], iteration)
+        self.add_scalar("validation.loss.%s.spadv"%task, reduced_losses[4], iteration)
 
-        # self.add_scalar('validation.acc.%s.spenc'%task, reduced_acces[0], iteration)
-        self.add_scalar('validation.acc.%s.spcla'%task, reduced_acces[0], iteration)
-        self.add_scalar('validation.acc.%s.texcl'%task, reduced_acces[1], iteration)
+        self.add_scalar('validation.acc.%s.spenc'%task, reduced_acces[0], iteration)
+        self.add_scalar('validation.acc.%s.spcla'%task, reduced_acces[1], iteration)
+        self.add_scalar('validation.acc.%s.texcl'%task, reduced_acces[2], iteration)
         
         # predicted_mel, post_output, predicted_stop, alignments, \
         #     text_hidden, mel_hidden,  text_logit_from_mel_hidden, \
@@ -62,8 +62,8 @@ class ParrotLogger(SummaryWriter):
 
         text_hidden, mel_hidden, text_logit_from_mel_hidden, \
         audio_seq2seq_alignments, \
-        speaker_logit_from_mel_hidden, \
-        text_lengths, mel_lengths = y_pred
+        speaker_logit_from_mel, speaker_logit_from_mel_hidden, \
+        text_lengths, mel_lengths, SE_alignments = y_pred
 
         text_target, mel_target, speaker_target,  stop_target  = y
 
@@ -81,7 +81,7 @@ class ParrotLogger(SummaryWriter):
 
         # alignments = alignments.data.cpu().numpy()
         audio_seq2seq_alignments = audio_seq2seq_alignments.data.cpu().numpy()
-        # SE_alignments = SE_alignments.data.cpu().numpy()
+        SE_alignments = SE_alignments.data.cpu().numpy()
 
         # self.add_image(
         #     "%s.alignment"%task,
@@ -96,10 +96,10 @@ class ParrotLogger(SummaryWriter):
             plot_alignment_to_numpy(audio_seq2seq_alignments[idx].T),
             iteration, dataformats='HWC')
 
-        # self.add_image(
-        #     "%s.SE_alignments"%task,
-        #     plot_alignment_to_numpy(SE_alignments[idx].T),
-        #     iteration, dataformats='HWC')
+        self.add_image(
+            "%s.SE_alignments"%task,
+            plot_alignment_to_numpy(SE_alignments[idx].T),
+            iteration, dataformats='HWC')
 
         # self.add_image(
         #     "%s.mel_target"%task,

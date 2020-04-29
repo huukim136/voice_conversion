@@ -73,8 +73,8 @@ class ParrotLoss(nn.Module):
 
         text_hidden, mel_hidden, text_logit_from_mel_hidden, \
         audio_seq2seq_alignments, \
-        speaker_logit_from_mel_hidden, \
-        text_lengths, mel_lengths = model_outputs
+        speaker_logit_from_mel, speaker_logit_from_mel_hidden, \
+        text_lengths, mel_lengths, scores = model_outputs
 
         text_target, mel_target, speaker_target, stop_target  = self.parse_targets(targets, text_lengths)
 
@@ -132,9 +132,9 @@ class ParrotLoss(nn.Module):
         n_symbols_plus_one = text_logit_from_mel_hidden.size(2)
 
         # speaker classification loss #
-        # speaker_encoder_loss = nn.CrossEntropyLoss()(speaker_logit_from_mel, speaker_target)
-        # _, predicted_speaker = torch.max(speaker_logit_from_mel,dim=1)
-        # speaker_encoder_acc = ((predicted_speaker == speaker_target).float()).sum() / float(speaker_target.size(0))
+        speaker_encoder_loss = nn.CrossEntropyLoss()(speaker_logit_from_mel, speaker_target)
+        _, predicted_speaker = torch.max(speaker_logit_from_mel,dim=1)
+        speaker_encoder_acc = ((predicted_speaker == speaker_target).float()).sum() / float(speaker_target.size(0))
 
         speaker_logit_flatten = speaker_logit_from_mel_hidden.reshape(-1, n_speakers) # -> [B* TTEXT, n_speakers]
         _, predicted_speaker = torch.max(speaker_logit_flatten, dim=1)
@@ -166,11 +166,11 @@ class ParrotLoss(nn.Module):
         #         contrast_loss, consist_loss, speaker_encoder_loss, speaker_classification_loss,
         #         text_classification_loss, speaker_adversial_loss]
         loss_list = [
-                contrast_loss, speaker_classification_loss,
+                contrast_loss, speaker_encoder_loss,  speaker_classification_loss,
                 text_classification_loss, speaker_adversial_loss]            
 
-        # acc_list = [speaker_encoder_acc, speaker_classification_acc, text_classification_acc]
-        acc_list = [speaker_classification_acc, text_classification_acc]        
+        acc_list = [speaker_encoder_acc, speaker_classification_acc, text_classification_acc]
+        # acc_list = [speaker_classification_acc, text_classification_acc]        
         
         # combined_loss1 = recon_loss + recon_loss_post + stop_loss + self.contr_w * contrast_loss + self.consi_w * consist_loss + \
         #     self.spenc_w * speaker_encoder_loss +  self.texcl_w * text_classification_loss + \
