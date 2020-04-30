@@ -19,30 +19,30 @@ class ParrotLogger(SummaryWriter):
         
         self.add_scalar("training.loss", reduced_loss, iteration)
 
-        # self.add_scalar("training.loss.spenc", reduced_losses[0], iteration)
+        self.add_scalar("training.loss.spenc", reduced_losses[0], iteration)
 
-        self.add_scalar("training.loss.texcl", reduced_losses[0], iteration)
+        # self.add_scalar("training.loss.texcl", reduced_losses[0], iteration)
 
         self.add_scalar("grad.norm", grad_norm, iteration)
         self.add_scalar("learning.rate", learning_rate, iteration)
         self.add_scalar("duration", duration, iteration)
 
         #pdb.set_trace()
-        # self.add_scalar('training.acc.spenc', reduced_acces[0], iteration)
+        self.add_scalar('training.acc.spenc', reduced_acces[0], iteration)
 
-        self.add_scalar('training.acc.texcl', reduced_acces[0], iteration)
+        # self.add_scalar('training.acc.texcl', reduced_acces[0], iteration)
     
     def log_validation(self, reduced_loss, reduced_losses, reduced_acces, model, y, y_pred, iteration, task):
 
         self.add_scalar('validation.loss.%s'%task, reduced_loss, iteration)
 
-        # self.add_scalar("validation.loss.%s.spenc"%task, reduced_losses[0], iteration)
+        self.add_scalar("validation.loss.%s.spenc"%task, reduced_losses[0], iteration)
 
-        self.add_scalar("validation.loss.%s.texcl"%task, reduced_losses[0], iteration)
+        # self.add_scalar("validation.loss.%s.texcl"%task, reduced_losses[0], iteration)
 
-        # self.add_scalar('validation.acc.%s.spenc'%task, reduced_acces[0], iteration)
+        self.add_scalar('validation.acc.%s.spenc'%task, reduced_acces[0], iteration)
 
-        self.add_scalar('validation.acc.%s.texcl'%task, reduced_acces[0], iteration)
+        # self.add_scalar('validation.acc.%s.texcl'%task, reduced_acces[0], iteration)
         
 
         # text_hidden, text_logit, \

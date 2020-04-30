@@ -59,15 +59,15 @@ class Parrot(nn.Module):
         std = sqrt(2.0 / (hparams.n_symbols + hparams.symbols_embedding_dim))
         val = sqrt(3.0) * std
 
-        self.sos = hparams.n_symbols
+        # self.sos = hparams.n_symbols
 
-        self.embedding.weight.data.uniform_(-val, val)
+        # self.embedding.weight.data.uniform_(-val, val)
 
-        self.text_encoder = TextEncoder(hparams)
+        # self.text_encoder = TextEncoder(hparams)
 
-        # self.speaker_encoder = SpeakerEncoder(hparams)
+        self.speaker_encoder = SpeakerEncoder(hparams)
 
-        # self.dense_block = DenseBlock(hparams)
+        self.dense_block = DenseBlock(hparams)
 
         # self.spemb_input = hparams.spemb_input
 
@@ -76,9 +76,9 @@ class Parrot(nn.Module):
     def grouped_parameters(self,):
 
         params_group1 = [p for p in self.embedding.parameters()]
-        params_group1.extend([p for p in self.text_encoder.parameters()])
-        # params_group1.extend([p for p in self.speaker_encoder.parameters()])
-        # params_group1.extend([p for p in self.dense_block.parameters()])
+        # params_group1.extend([p for p in self.text_encoder.parameters()])
+        params_group1.extend([p for p in self.speaker_encoder.parameters()])
+        params_group1.extend([p for p in self.dense_block.parameters()])
         # params_group1.extend([p for p in self.se_alignment.parameters()])
         return params_group1
 
@@ -130,25 +130,21 @@ class Parrot(nn.Module):
 
         # pdb.set_trace()
         text_input_padded, mel_padded, text_lengths, mel_lengths = inputs
-        text_input_embedded = self.embedding(text_input_padded.long()).transpose(1, 2) # -> [B, text_embedding_dim, max_text_len]
+        # text_input_embedded = self.embedding(text_input_padded.long()).transpose(1, 2) # -> [B, text_embedding_dim, max_text_len]
 
-        text_hidden, text_logit = self.text_encoder(text_input_embedded, text_lengths) # -> [B, max_text_len, hidden_dim]
+        # text_hidden, text_logit = self.text_encoder(text_input_embedded, text_lengths) # -> [B, max_text_len, hidden_dim]
 
-        # lstm_output = self.speaker_encoder(mel_padded, mel_lengths) 
-
+        lstm_output = self.speaker_encoder(mel_padded, mel_lengths) 
+        speaker_logit_from_mel, spk_embedding = self.dense_block(lstm_output, mel_lengths)
         # mask = self.get_mask(text_lengths)
         # mask = mask.expand(-1,lstm_output.size(1),-1)
         # contexts , scores = self.se_alignment(lstm_output, text_hidden, mask)
         # lstm_output = lstm_output + contexts
         # spk_logits, spk_embedding = self.dense_block(lstm_output,mel_lengths)
 
-        # outputs = [
-        #           text_hidden, text_logit, 
-        #           spk_logits,
-        #           text_lengths, mel_lengths, scores]
         outputs = [
-                  text_hidden, text_logit, text_lengths
-                  ]
+                  speaker_logit_from_mel, 
+                  text_lengths, mel_lengths]
         return outputs
 
     
