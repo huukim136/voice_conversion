@@ -102,7 +102,7 @@ def create_hparams(hparams_string=None, verbose=False):
         learning_rate=1e-3,
         weight_decay=1e-6,
         grad_clip_thresh=5.0,
-        batch_size=8,
+        batch_size=16,
         
         contrastive_loss_w=30.0,
         consistent_loss_w=0.0,
@@ -114,7 +114,12 @@ def create_hparams(hparams_string=None, verbose=False):
         
         E  = 128, 
         query_dim = 80,
-        num_heads =8
+        num_heads =8,
+
+        # MINE network
+        hidden_dim = 128,
+        out_dim = 1,
+        projector_dim = 256
     )
 
     if hparams_string:

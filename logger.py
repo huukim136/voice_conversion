@@ -25,9 +25,9 @@ class ParrotLogger(SummaryWriter):
         self.add_scalar("training.loss.consi", reduced_losses[4], iteration)
         self.add_scalar("training.loss.spenc", reduced_losses[5], iteration)
         self.add_scalar("training.loss.spcla", reduced_losses[6], iteration)
-        self.add_scalar("training.loss.framespkcls", reduced_losses[7], iteration)
-        self.add_scalar("training.loss.texcl", reduced_losses[8], iteration)
-        self.add_scalar("training.loss.spadv", reduced_losses[9], iteration)
+        # self.add_scalar("training.loss.framespkcls", reduced_losses[7], iteration)
+        self.add_scalar("training.loss.texcl", reduced_losses[7], iteration)
+        self.add_scalar("training.loss.spadv", reduced_losses[8], iteration)
 
         self.add_scalar("grad.norm", grad_norm, iteration)
         self.add_scalar("learning.rate", learning_rate, iteration)
@@ -36,8 +36,8 @@ class ParrotLogger(SummaryWriter):
         #pdb.set_trace()
         self.add_scalar('training.acc.spenc', reduced_acces[0], iteration)
         self.add_scalar('training.acc.spcla', reduced_acces[1], iteration)
-        self.add_scalar('training.acc.framespkcls', reduced_acces[2], iteration)
-        self.add_scalar('training.acc.texcl', reduced_acces[3], iteration)
+        # self.add_scalar('training.acc.framespkcls', reduced_acces[2], iteration)
+        self.add_scalar('training.acc.texcl', reduced_acces[2], iteration)
     
     def log_validation(self, reduced_loss, reduced_losses, reduced_acces, model, y, y_pred, iteration, task):
 
@@ -49,14 +49,14 @@ class ParrotLogger(SummaryWriter):
         self.add_scalar("validation.loss.%s.consi"%task, reduced_losses[4], iteration)
         self.add_scalar("validation.loss.%s.spenc"%task, reduced_losses[5], iteration)
         self.add_scalar("validation.loss.%s.spcla"%task, reduced_losses[6], iteration)
-        self.add_scalar("validation.loss.%s.framespkcls"%task, reduced_losses[7], iteration)
-        self.add_scalar("validation.loss.%s.texcl"%task, reduced_losses[8], iteration)
-        self.add_scalar("validation.loss.%s.spadv"%task, reduced_losses[9], iteration)
+        # self.add_scalar("validation.loss.%s.framespkcls"%task, reduced_losses[7], iteration)
+        self.add_scalar("validation.loss.%s.texcl"%task, reduced_losses[7], iteration)
+        self.add_scalar("validation.loss.%s.spadv"%task, reduced_losses[8], iteration)
 
         self.add_scalar('validation.acc.%s.spenc'%task, reduced_acces[0], iteration)
         self.add_scalar('validation.acc.%s.spcla'%task, reduced_acces[1], iteration)
-        self.add_scalar('validation.acc.%s.framespkcls'%task, reduced_acces[2], iteration)
-        self.add_scalar('validation.acc.%s.texcl'%task, reduced_acces[3], iteration)
+        # self.add_scalar('validation.acc.%s.framespkcls'%task, reduced_acces[2], iteration)
+        self.add_scalar('validation.acc.%s.texcl'%task, reduced_acces[2], iteration)
         
         predicted_mel, post_output, predicted_stop, alignments, \
             text_hidden, mel_hidden,  text_logit_from_mel_hidden, \

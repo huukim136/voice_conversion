@@ -134,8 +134,8 @@ def validate(model, criterion, valset, iteration, batch_size, n_gpus,
                                 pin_memory=False, collate_fn=collate_fn)
 
         val_loss_tts, val_loss_vc = 0.0, 0.0
-        reduced_val_tts_losses, reduced_val_vc_losses = np.zeros([10], dtype=np.float32), np.zeros([10], dtype=np.float32)
-        reduced_val_tts_acces, reduced_val_vc_acces = np.zeros([4], dtype=np.float32), np.zeros([4], dtype=np.float32)
+        reduced_val_tts_losses, reduced_val_vc_losses = np.zeros([9], dtype=np.float32), np.zeros([9], dtype=np.float32)
+        reduced_val_tts_acces, reduced_val_vc_acces = np.zeros([3], dtype=np.float32), np.zeros([3], dtype=np.float32)
 
         for i, batch in enumerate(val_loader):
 
@@ -143,9 +143,9 @@ def validate(model, criterion, valset, iteration, batch_size, n_gpus,
             # pdb.set_trace()
 
             if i%2 == 0:
-                y_pred = model(x, True)
+                y_pred, mi_lb = model(x, True)
             else:
-                y_pred = model(x, False)
+                y_pred, mi_lb = model(x, False)
             
             losses, acces, l_main, l_sc = criterion(y_pred, y, False)
             if distributed_run:
@@ -277,10 +277,10 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
             x, y = model.parse_batch(batch)
 
             if i % 2 == 0:
-                y_pred = model(x, True)
+                y_pred, mi_lb = model(x, True)
                 losses, acces, l_main, l_sc  = criterion(y_pred, y, True)
             else:
-                y_pred = model(x, False)
+                y_pred, mi_lb = model(x, False)
                 losses, acces, l_main, l_sc  = criterion(y_pred, y, False)
 
             if hparams.distributed_run:
@@ -300,8 +300,16 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
 
             for p in parameters_sc:
                 p.requires_grad_(requires_grad=False)
-          
+            
+            with torch.no_grad():
+                mi_part = 0.1 * mi_lb
+            l_main = l_main + mi_part
             l_main.backward(retain_graph=True)
+
+            with torch.enable_grad():
+                loss2 = -0.1 * mi_lb
+            loss2.backward(retain_graph=True)
+
             grad_norm_main = torch.nn.utils.clip_grad_norm_(
                 parameters_main, hparams.grad_clip_thresh)
 

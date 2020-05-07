@@ -8,6 +8,7 @@ from .decoder_9 import Decoder
 from .basic_layers import ConvNorm, LinearNorm
 from torch.nn import functional as F
 from .layers_10 import SpeakerClassifier, SpeakerEncoder, AudioSeq2seq, TextEncoder,  PostNet, MergeNet, GST
+from .mine_network import MINE, Train_MINE # for mine network
 import pdb
 
 # path_save = "/home/hk/voice_conversion/nonparaSeq2seqVC_code/pre-train/reader/spk_embeddings"
@@ -83,6 +84,10 @@ class Parrot(nn.Module):
 
         self.se_alignment = RefAttention(hparams)
 
+        self.mine = MINE(hparams)
+
+        self.mine_train = Train_MINE()
+
     def grouped_parameters(self,):
 
         params_group1 = [p for p in self.embedding.parameters()]
@@ -94,6 +99,8 @@ class Parrot(nn.Module):
         params_group1.extend([p for p in self.merge_net.parameters()])
         params_group1.extend([p for p in self.decoder.parameters()])
         params_group1.extend([p for p in self.postnet.parameters()])
+        params_group1.extend([p for p in self.mine.parameters()])    
+        params_group1.extend([p for p in self.mine_train.parameters()])
 
         return params_group1, [p for p in self.speaker_classifier.parameters()]
 
@@ -194,6 +201,9 @@ class Parrot(nn.Module):
         L = hidden.size(1)
         # hidden = torch.cat([hidden, contexts.detach()], -1)
         # hidden = torch.cat([hidden, contexts], -1)
+
+        mi_lb, mine_T, mine_exp_T = self.mine_train(hidden, contexts, self.mine)
+
         hidden = hidden  +  contexts
 
         predicted_mel, predicted_stop, alignments = self.decoder(hidden, mel_padded, text_lengths)
@@ -210,7 +220,7 @@ class Parrot(nn.Module):
         #          speaker_logit_from_mel_hidden,
         #          text_lengths, mel_lengths]
 
-        return outputs
+        return outputs, mi_lb
 
     
     def inference(self, inputs, input_text, mel_reference, beam_width, spk_embeddings_save=False):

@@ -153,14 +153,14 @@ class ParrotLoss(nn.Module):
         speaker_classification_loss = torch.sum(loss * text_mask.reshape(-1)) / torch.sum(text_mask)
       
         # pdb.set_trace()
-        speaker_logit_flatten_spk = frame_spk_embeddings_logits.reshape(-1, n_speakers) # -> [B* TTEXT, n_speakers]
-        _, predicted_speaker = torch.max(speaker_logit_flatten_spk, dim=1)
-        speaker_target_flatten = speaker_target.unsqueeze(1).expand(-1, frame_spk_embeddings_logits.size(1)).reshape(-1)
-        frame_spk_embeddings_acc = ((predicted_speaker == speaker_target_flatten).float() * mel_mask_spk.reshape(-1)).sum() / mel_mask_spk.sum()
-        loss = self.CrossEntropyLoss(speaker_logit_flatten_spk, speaker_target_flatten)
+        # speaker_logit_flatten_spk = frame_spk_embeddings_logits.reshape(-1, n_speakers) # -> [B* TTEXT, n_speakers]
+        # _, predicted_speaker = torch.max(speaker_logit_flatten_spk, dim=1)
+        # speaker_target_flatten = speaker_target.unsqueeze(1).expand(-1, frame_spk_embeddings_logits.size(1)).reshape(-1)
+        # frame_spk_embeddings_acc = ((predicted_speaker == speaker_target_flatten).float() * mel_mask_spk.reshape(-1)).sum() / mel_mask_spk.sum()
+        # loss = self.CrossEntropyLoss(speaker_logit_flatten_spk, speaker_target_flatten)
 
 
-        frame_spk_embeddings_loss = torch.sum(loss * mel_mask_spk.reshape(-1)) / torch.sum(mel_mask_spk)
+        # frame_spk_embeddings_loss = torch.sum(loss * mel_mask_spk.reshape(-1)) / torch.sum(mel_mask_spk)
 
         # text classification loss #
         text_logit_flatten = text_logit_from_mel_hidden.reshape(-1, n_symbols_plus_one)
@@ -181,19 +181,19 @@ class ParrotLoss(nn.Module):
             speaker_adversial_loss = torch.sum(loss * mask) / torch.sum(mask)
         
         loss_list = [recon_loss, recon_loss_post,  stop_loss,
-                contrast_loss, consist_loss, speaker_encoder_loss, speaker_classification_loss, frame_spk_embeddings_loss, 
+                contrast_loss, consist_loss, speaker_encoder_loss, speaker_classification_loss, 
                 text_classification_loss, speaker_adversial_loss]
             
         #loss_list = [recon_loss, recon_loss_post,  stop_loss,
         #        contrast_loss, speaker_classification_loss,
         #        text_classification_loss, speaker_adversial_loss]
 
-        acc_list = [speaker_encoder_acc, speaker_classification_acc, frame_spk_embeddings_acc, text_classification_acc]
+        acc_list = [speaker_encoder_acc, speaker_classification_acc, text_classification_acc]
         #acc_list = [speaker_classification_acc, text_classification_acc]        
         
         combined_loss1 = recon_loss + recon_loss_post + stop_loss + self.contr_w * contrast_loss + self.consi_w * consist_loss + \
             self.spenc_w * speaker_encoder_loss +  self.texcl_w * text_classification_loss + \
-            self.spadv_w * speaker_adversial_loss + self.spenc_w * frame_spk_embeddings_loss
+            self.spadv_w * speaker_adversial_loss 
 
         #combined_loss1 = recon_loss + recon_loss_post + stop_loss + self.contr_w * contrast_loss + self.consi_w * consist_loss + \
         #    self.texcl_w * text_classification_loss + self.spadv_w * speaker_adversial_loss
