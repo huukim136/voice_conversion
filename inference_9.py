@@ -27,7 +27,7 @@ tlist = '/home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/inf
 
 # use seen (tlist) or unseen list (hlist)
 test_list = tlist
-checkpoint_path='outdir_100/checkpoint_224000'
+checkpoint_path='outdir_100_add_loss_MI/checkpoint_62000'
 # TTS or VC task?
 input_text= False
 # number of utterances for generation

@@ -240,7 +240,7 @@ class Parrot(nn.Module):
         start_embedding = self.embedding(start_embedding) # [1, embedding_dim]
 
         #-> [B, text_len+1, hidden_dim] [B, text_len+1, n_symbols] [B, text_len+1, T/r]
-        speaker_id, speaker_embedding, frame_spk_embeddings, frame_spk_embeddings_logits = self.speaker_encoder.inference(mel_reference)
+        speaker_id, speaker_embedding, frame_spk_embeddings = self.speaker_encoder.inference(mel_reference)
         if spk_embeddings_save:
             spk_embed = speaker_embedding.data.cpu().numpy()[0]
             spk_embeddings_path = os.path.join(path_save, 'spk_embedding.npy')
@@ -268,7 +268,7 @@ class Parrot(nn.Module):
 
         L = hidden.size(1)
 
-        hidden = contexts
+        hidden = hidden + contexts
         # hidden = torch.cat([hidden, speaker_embedding.detach().unsqueeze(1).expand(-1, L, -1)], -1)
           
         predicted_mel, predicted_stop, alignments = self.decoder.inference(hidden)

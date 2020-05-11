@@ -15,7 +15,7 @@ class ParrotLogger(SummaryWriter):
         self.ali_path = ali_path
 
     def log_training(self, reduced_loss, reduced_losses, reduced_acces, grad_norm, learning_rate, duration,
-                     iteration):
+                     iteration,mi_lb):
         
         self.add_scalar("training.loss", reduced_loss, iteration)
         self.add_scalar("training.loss.recon", reduced_losses[0], iteration)
@@ -32,6 +32,8 @@ class ParrotLogger(SummaryWriter):
         self.add_scalar("grad.norm", grad_norm, iteration)
         self.add_scalar("learning.rate", learning_rate, iteration)
         self.add_scalar("duration", duration, iteration)
+        self.add_scalar('training.mi_lb', mi_lb, iteration)
+
 
         #pdb.set_trace()
         self.add_scalar('training.acc.spenc', reduced_acces[0], iteration)
@@ -39,7 +41,7 @@ class ParrotLogger(SummaryWriter):
         # self.add_scalar('training.acc.framespkcls', reduced_acces[2], iteration)
         self.add_scalar('training.acc.texcl', reduced_acces[2], iteration)
     
-    def log_validation(self, reduced_loss, reduced_losses, reduced_acces, model, y, y_pred, iteration, task):
+    def log_validation(self, reduced_loss, reduced_losses, reduced_acces, model, y, y_pred, iteration,mi_lb, task):
 
         self.add_scalar('validation.loss.%s'%task, reduced_loss, iteration)
         self.add_scalar("validation.loss.%s.recon"%task, reduced_losses[0], iteration)
@@ -52,6 +54,8 @@ class ParrotLogger(SummaryWriter):
         # self.add_scalar("validation.loss.%s.framespkcls"%task, reduced_losses[7], iteration)
         self.add_scalar("validation.loss.%s.texcl"%task, reduced_losses[7], iteration)
         self.add_scalar("validation.loss.%s.spadv"%task, reduced_losses[8], iteration)
+
+        self.add_scalar("validation.%s.mi_lb"%task, mi_lb, iteration)
 
         self.add_scalar('validation.acc.%s.spenc'%task, reduced_acces[0], iteration)
         self.add_scalar('validation.acc.%s.spcla'%task, reduced_acces[1], iteration)
