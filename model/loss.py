@@ -2,6 +2,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 from .utils import get_mask_from_lengths
+import pdb
 
 class ParrotLoss(nn.Module):
     def __init__(self, hparams):
@@ -23,6 +24,8 @@ class ParrotLoss(nn.Module):
         self.texcl_w = hparams.text_classifier_loss_w
         self.spadv_w = hparams.speaker_adversial_loss_w
         self.spcla_w = hparams.speaker_classifier_loss_w
+        self.tadv_w = hparams.text_adversarial_loss_w
+        self.tcla_w = hparams.text_clf_loss_w
 
     def parse_targets(self, targets, text_lengths):
         '''
@@ -40,14 +43,14 @@ class ParrotLoss(nn.Module):
         stop_target = stop_target[:, :, 0]
 
         padded = torch.tensor(text_target.data.new(B,1).zero_())
-        text_target = torch.cat((text_target, padded), dim=-1)
+        text_target_padded = torch.cat((text_target, padded), dim=-1)
         
         # adding the ending token for target
         for bid in range(B):
-            text_target[bid, text_lengths[bid].item()] = self.eos
+            text_target_padded[bid, text_lengths[bid].item()] = self.eos
 
         # return text_target, mel_target, spc_target, speaker_target, stop_target
-        return text_target, mel_target, speaker_target, stop_target
+        return text_target_padded, text_target, mel_target, speaker_target, stop_target
     
     def forward(self, model_outputs, targets, input_text, eps=1e-5):
 
@@ -69,7 +72,7 @@ class ParrotLoss(nn.Module):
             text_hidden, mel_hidden, text_logit_from_mel_hidden, \
             audio_seq2seq_alignments, \
             speaker_logit_from_mel, speaker_logit_from_mel_hidden, \
-            text_lengths, mel_lengths, SE_alignments = model_outputs
+            text_lengths, mel_lengths, SE_alignments, text_classifier_logit = model_outputs
 
         #predicted_mel, post_output, predicted_stop, alignments,\
         #    text_hidden, mel_hidden, text_logit_from_mel_hidden, \
@@ -78,7 +81,7 @@ class ParrotLoss(nn.Module):
         #    text_lengths, mel_lengths = model_outputs
 
         # text_target, mel_target, spc_target, speaker_target, stop_target  = self.parse_targets(targets, text_lengths)
-        text_target, mel_target, speaker_target, stop_target  = self.parse_targets(targets, text_lengths)
+        text_target, text_target_no_pad, mel_target, speaker_target, stop_target  = self.parse_targets(targets, text_lengths)
 
         ## get masks ##
         mel_mask = get_mask_from_lengths(mel_lengths, mel_target.size(2)).unsqueeze(1).expand(-1, mel_target.size(1), -1).float()
@@ -138,6 +141,10 @@ class ParrotLoss(nn.Module):
         TTEXT = speaker_logit_from_mel_hidden.size(1)
         n_symbols_plus_one = text_logit_from_mel_hidden.size(2)
 
+        n_symbols = text_classifier_logit.size(2)
+        n_text = text_classifier_logit.size(1)
+        # n_symbols_plus_one = text_logit_from_mel_hidden.size(2)       
+
         # speaker classification loss #
         speaker_encoder_loss = nn.CrossEntropyLoss()(speaker_logit_from_mel, speaker_target)
         _, predicted_speaker = torch.max(speaker_logit_from_mel,dim=1)
@@ -150,7 +157,7 @@ class ParrotLoss(nn.Module):
         loss = self.CrossEntropyLoss(speaker_logit_flatten, speaker_target_flatten)
 
         speaker_classification_loss = torch.sum(loss * text_mask.reshape(-1)) / torch.sum(text_mask)
-
+        # pdb.set_trace()
         # text classification loss #
         text_logit_flatten = text_logit_from_mel_hidden.reshape(-1, n_symbols_plus_one)
         text_target_flatten = text_target.reshape(-1)
@@ -169,25 +176,43 @@ class ParrotLoss(nn.Module):
         else:
             speaker_adversial_loss = torch.sum(loss * mask) / torch.sum(mask)
         
+        # text classifer loss #
+        text_clf_logit_flatten = text_classifier_logit.reshape(-1, n_symbols) # -> [B* n_text, n_symbols]
+        _, predicted_text = torch.max(text_clf_logit_flatten, dim=1)
+        text_target_flatten = text_target_no_pad.reshape(-1)
+        text_clf_acc = torch.mean((predicted_text == text_target_flatten).float())
+        loss = self.CrossEntropyLoss(text_clf_logit_flatten, text_target_flatten)
+
+        text_clf_loss = torch.mean(loss)
+
+        # text adversival loss #
+        flatten_text = 1. / n_symbols * torch.ones_like(text_clf_logit_flatten)
+        loss = self.MSELoss(F.softmax(text_clf_logit_flatten, dim=1), flatten_text)
+        # mask = text_mask.unsqueeze(2).expand(-1,-1, n_symbols).reshape(-1, n_symbols)
+
+        text_adversial_loss = torch.mean(loss)
+
         loss_list = [recon_loss, recon_loss_post,  stop_loss,
                 contrast_loss, consist_loss, speaker_encoder_loss, speaker_classification_loss,
-                text_classification_loss, speaker_adversial_loss]
+                text_classification_loss, speaker_adversial_loss, text_clf_loss, text_adversial_loss]
             
         #loss_list = [recon_loss, recon_loss_post,  stop_loss,
         #        contrast_loss, speaker_classification_loss,
         #        text_classification_loss, speaker_adversial_loss]
 
-        acc_list = [speaker_encoder_acc, speaker_classification_acc, text_classification_acc]
+        acc_list = [speaker_encoder_acc, speaker_classification_acc, text_classification_acc, text_clf_acc]
         #acc_list = [speaker_classification_acc, text_classification_acc]        
         
         combined_loss1 = recon_loss + recon_loss_post + stop_loss + self.contr_w * contrast_loss + self.consi_w * consist_loss + \
             self.spenc_w * speaker_encoder_loss +  self.texcl_w * text_classification_loss + \
-            self.spadv_w * speaker_adversial_loss
+            self.spadv_w * speaker_adversial_loss + self.tadv_w * text_adversial_loss
 
         #combined_loss1 = recon_loss + recon_loss_post + stop_loss + self.contr_w * contrast_loss + self.consi_w * consist_loss + \
         #    self.texcl_w * text_classification_loss + self.spadv_w * speaker_adversial_loss
 
         combined_loss2 = self.spcla_w * speaker_classification_loss
+
+        combined_loss3 = self.tcla_w * text_clf_loss
         
-        return loss_list, acc_list, combined_loss1, combined_loss2
+        return loss_list, acc_list, combined_loss1, combined_loss2, combined_loss3
 

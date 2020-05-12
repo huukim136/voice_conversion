@@ -51,6 +51,50 @@ class SpeakerClassifier(nn.Module):
 
         return logits
 
+class TextClassifier(nn.Module):
+    '''
+    - n layer CNN + PROJECTION
+    '''
+    def __init__(self, hparams):
+        super(TextClassifier, self).__init__()
+        
+        convolutions = []
+        for i in range(hparams.SC_n_convolutions):
+            #parse dim
+            if i == 0:
+                in_dim = hparams.encoder_embedding_dim
+                out_dim = hparams.SC_hidden_dim
+            elif i == (hparams.SC_n_convolutions-1):
+                in_dim = hparams.SC_hidden_dim
+                out_dim = hparams.SC_hidden_dim
+            
+            conv_layer = nn.Sequential(
+                ConvNorm(in_dim,
+                         out_dim,
+                         kernel_size=hparams.SC_kernel_size, stride=1,
+                         padding=int((hparams.SC_kernel_size - 1) / 2),
+                         dilation=1, w_init_gain='leaky_relu',
+                         param=0.2),
+                nn.BatchNorm1d(out_dim),
+                nn.LeakyReLU(0.2))
+            convolutions.append(conv_layer)
+        self.convolutions = nn.ModuleList(convolutions)
+        self.projection = LinearNorm(hparams.SC_hidden_dim, hparams.n_symbols)
+
+    def forward(self, x):
+        # x [B, T, dim]
+
+        # -> [B, DIM, T]
+        hidden = x.transpose(1, 2)
+        for conv in self.convolutions:
+            hidden = conv(hidden)
+        
+        # -> [B, T, dim]
+        hidden = hidden.transpose(1, 2)
+        logits = self.projection(hidden)
+
+        return logits
+
 class SpeakerEncoder(nn.Module):
     '''
     -  Simple 2 layer bidirectional LSTM with global mean_pooling

@@ -27,6 +27,8 @@ class ParrotLogger(SummaryWriter):
         self.add_scalar("training.loss.spcla", reduced_losses[6], iteration)
         self.add_scalar("training.loss.texcl", reduced_losses[7], iteration)
         self.add_scalar("training.loss.spadv", reduced_losses[8], iteration)
+        self.add_scalar("training.loss.tcla", reduced_losses[9], iteration)
+        self.add_scalar("training.loss.tadv", reduced_losses[10], iteration)
 
         self.add_scalar("grad.norm", grad_norm, iteration)
         self.add_scalar("learning.rate", learning_rate, iteration)
@@ -36,6 +38,7 @@ class ParrotLogger(SummaryWriter):
         self.add_scalar('training.acc.spenc', reduced_acces[0], iteration)
         self.add_scalar('training.acc.spcla', reduced_acces[1], iteration)
         self.add_scalar('training.acc.texcl', reduced_acces[2], iteration)
+        self.add_scalar('training.acc.tcla', reduced_acces[3], iteration)
     
     def log_validation(self, reduced_loss, reduced_losses, reduced_acces, model, y, y_pred, iteration, task):
 
@@ -58,7 +61,7 @@ class ParrotLogger(SummaryWriter):
             text_hidden, mel_hidden,  text_logit_from_mel_hidden, \
             audio_seq2seq_alignments, \
             speaker_logit_from_mel, speaker_logit_from_mel_hidden, \
-            text_lengths, mel_lengths, SE_alignments = y_pred
+            text_lengths, mel_lengths, SE_alignments, text_clf_logit = y_pred
 
         #predicted_mel, post_output, predicted_stop, alignments, \
         #    text_hidden, mel_hidden,  text_logit_from_mel_hidden, \

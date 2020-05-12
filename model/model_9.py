@@ -7,7 +7,7 @@ from .utils import to_gpu
 from .decoder_9 import Decoder
 from .basic_layers import ConvNorm, LinearNorm
 from torch.nn import functional as F
-from .layers_10 import SpeakerClassifier, SpeakerEncoder, AudioSeq2seq, TextEncoder,  PostNet, MergeNet, GST
+from .layers_10 import SpeakerClassifier, SpeakerEncoder, AudioSeq2seq, TextEncoder,  PostNet, MergeNet, GST, TextClassifier
 import pdb
 
 # path_save = "/home/hk/voice_conversion/nonparaSeq2seqVC_code/pre-train/reader/spk_embeddings"
@@ -83,6 +83,8 @@ class Parrot(nn.Module):
 
         self.se_alignment = RefAttention(hparams)
 
+        self.text_classifier = TextClassifier(hparams)
+
     def grouped_parameters(self,):
 
         params_group1 = [p for p in self.embedding.parameters()]
@@ -95,7 +97,7 @@ class Parrot(nn.Module):
         params_group1.extend([p for p in self.decoder.parameters()])
         params_group1.extend([p for p in self.postnet.parameters()])
 
-        return params_group1, [p for p in self.speaker_classifier.parameters()]
+        return params_group1, [p for p in self.speaker_classifier.parameters()], [p for p in self.text_classifier.parameters()]
 
     def parse_batch(self, batch):
         text_input_padded, mel_padded, speaker_id, \
@@ -190,6 +192,7 @@ class Parrot(nn.Module):
             mask = self.get_mask(frame_spk_embeddings, mel_lengths)
         mask = mask.expand(-1,hidden.size(1),-1)
         contexts , scores = self.se_alignment(hidden, frame_spk_embeddings, mask)
+        text_logit_from_mel_hidden = self.text_classifier(contexts) # -> [B, text_len, n_symbols] 
         # pdb.set_trace()
         L = hidden.size(1)
         # hidden = torch.cat([hidden, contexts.detach()], -1)
@@ -203,7 +206,7 @@ class Parrot(nn.Module):
         outputs = [predicted_mel, post_output, predicted_stop, alignments,
                   text_hidden, audio_seq2seq_hidden, audio_seq2seq_logit, audio_seq2seq_alignments, 
                   speaker_logit_from_mel, speaker_logit_from_mel_hidden,
-                  text_lengths, mel_lengths, scores]
+                  text_lengths, mel_lengths, scores, text_logit_from_mel_hidden]
 
         #outputs = [predicted_mel, post_output, predicted_stop, alignments,
         #          text_hidden, audio_seq2seq_hidden, audio_seq2seq_logit, audio_seq2seq_alignments, 

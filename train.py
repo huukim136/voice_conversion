@@ -98,27 +98,29 @@ def warm_start_model(checkpoint_path, model):
     return model
 
 
-def load_checkpoint(checkpoint_path, model, optimizer_main, optimizer_sc):
+def load_checkpoint(checkpoint_path, model, optimizer_main, optimizer_sc, optimizer_tc):
     assert os.path.isfile(checkpoint_path)
     print(("Loading checkpoint '{}'".format(checkpoint_path)))
     checkpoint_dict = torch.load(checkpoint_path, map_location='cpu')
     model.load_state_dict(checkpoint_dict['state_dict'])
     optimizer_main.load_state_dict(checkpoint_dict['optimizer_main'])
     optimizer_sc.load_state_dict(checkpoint_dict['optimizer_sc'])
+    optimizer_tc.load_state_dict(checkpoint_dict['optimizer_tc'])
     learning_rate = checkpoint_dict['learning_rate']
     iteration = checkpoint_dict['iteration']
     print(("Loaded checkpoint '{}' from iteration {}" .format(
         checkpoint_path, iteration)))
-    return model, optimizer_main, optimizer_sc, learning_rate, iteration
+    return model, optimizer_main, optimizer_sc, optimizer_tc, learning_rate, iteration
 
 
-def save_checkpoint(model, optimizer_main, optimizer_sc, learning_rate, iteration, filepath):
+def save_checkpoint(model, optimizer_main, optimizer_sc, optimizer_tc, learning_rate, iteration, filepath):
     print(("Saving model and optimizer state at iteration {} to {}".format(
         iteration, filepath)))
     torch.save({'iteration': iteration,
                 'state_dict': model.state_dict(),
                 'optimizer_main': optimizer_main.state_dict(),
                 'optimizer_sc': optimizer_sc.state_dict(),
+                'optimizer_tc': optimizer_tc.state_dict(),
                 'learning_rate': learning_rate}, filepath)
 
 
@@ -134,8 +136,8 @@ def validate(model, criterion, valset, iteration, batch_size, n_gpus,
                                 pin_memory=False, collate_fn=collate_fn)
 
         val_loss_tts, val_loss_vc = 0.0, 0.0
-        reduced_val_tts_losses, reduced_val_vc_losses = np.zeros([9], dtype=np.float32), np.zeros([9], dtype=np.float32)
-        reduced_val_tts_acces, reduced_val_vc_acces = np.zeros([3], dtype=np.float32), np.zeros([3], dtype=np.float32)
+        reduced_val_tts_losses, reduced_val_vc_losses = np.zeros([11], dtype=np.float32), np.zeros([11], dtype=np.float32)
+        reduced_val_tts_acces, reduced_val_vc_acces = np.zeros([4], dtype=np.float32), np.zeros([4], dtype=np.float32)
 
         for i, batch in enumerate(val_loader):
 
@@ -147,7 +149,7 @@ def validate(model, criterion, valset, iteration, batch_size, n_gpus,
             else:
                 y_pred = model(x, False)
             
-            losses, acces, l_main, l_sc = criterion(y_pred, y, False)
+            losses, acces, l_main, l_sc, l_tc = criterion(y_pred, y, False)
             if distributed_run:
                 reduced_val_losses = []
                 reduced_val_acces = []
@@ -160,20 +162,22 @@ def validate(model, criterion, valset, iteration, batch_size, n_gpus,
 
                 l_main = reduce_tensor(l_main.data, n_gpus).item()
                 l_sc = reduce_tensor(l_sc.data, n_gpus).item()
+                l_tc = reduce_tensor(l_tc.data, n_gpus).item()
             else:
                 reduced_val_losses = [l.item() for l in losses]
                 reduced_val_acces = [a.item() for a in acces]
                 l_main = l_main.item()
                 l_sc = l_sc.item()
+                l_tc = l_tc.item()
             
             if i%2 == 0:
-                val_loss_tts += l_main  + l_sc
+                val_loss_tts += l_main  + l_sc + l_tc
                 y_tts = y
                 y_tts_pred = y_pred
                 reduced_val_tts_losses += np.array(reduced_val_losses)
                 reduced_val_tts_acces += np.array(reduced_val_acces)
             else:
-                val_loss_vc += l_main + l_sc
+                val_loss_vc += l_main + l_sc + l_tc
                 y_vc = y
                 y_vc_pred = y_pred
                 reduced_val_vc_losses += np.array(reduced_val_losses)
@@ -224,11 +228,13 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
     model = load_model(hparams)
     learning_rate = hparams.learning_rate
     #pdb.set_trace()
-    parameters_main, parameters_sc = model.grouped_parameters()
+    parameters_main, parameters_sc, parameters_tc = model.grouped_parameters()
 
     optimizer_main = torch.optim.Adam(parameters_main, lr=learning_rate,
                                  weight_decay=hparams.weight_decay)
     optimizer_sc = torch.optim.Adam(parameters_sc, lr=learning_rate,
+                                 weight_decay=hparams.weight_decay)
+    optimizer_tc = torch.optim.Adam(parameters_tc, lr=learning_rate,
                                  weight_decay=hparams.weight_decay)
 
     if hparams.distributed_run:
@@ -248,8 +254,8 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
         if warm_start:
             model = warm_start_model(checkpoint_path, model)
         else:
-            model, optimizer_main, optimizer_sc, _learning_rate, iteration = load_checkpoint(
-                checkpoint_path, model, optimizer_main, optimizer_sc)
+            model, optimizer_main, optimizer_sc, optimizer_tc, _learning_rate, iteration = load_checkpoint(
+                checkpoint_path, model, optimizer_main, optimizer_sc, optimizer_tc)
             if hparams.use_saved_learning_rate:
                 learning_rate = _learning_rate
             iteration += 1  # next iteration is iteration + 1
@@ -271,17 +277,18 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
             for param_group in optimizer_sc.param_groups:
                 param_group['lr'] = learning_rate
             
-
+            for param_group in optimizer_tc.param_groups:
+                param_group['lr'] = learning_rate
 
             model.zero_grad()
             x, y = model.parse_batch(batch)
 
             if i % 2 == 0:
                 y_pred = model(x, True)
-                losses, acces, l_main, l_sc  = criterion(y_pred, y, True)
+                losses, acces, l_main, l_sc, l_tc = criterion(y_pred, y, True)
             else:
                 y_pred = model(x, False)
-                losses, acces, l_main, l_sc  = criterion(y_pred, y, False)
+                losses, acces, l_main, l_sc, l_tc  = criterion(y_pred, y, False)
 
             if hparams.distributed_run:
                 reduced_losses = []
@@ -292,13 +299,17 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
                     reduced_acces.append(reduce_tensor(a.data, n_gpus).item())
                 redl_main = reduce_tensor(l_main.data, n_gpus).item()
                 redl_sc = reduce_tensor(l_sc.data, n_gpus).item()
+                redl_tc = reduce_tensor(l_tc.data, n_gpus).item()
             else:
                 reduced_losses = [l.item() for l in losses]
                 reduced_acces = [a.item() for a in acces]
                 redl_main = l_main.item()
                 redl_sc = l_sc.item()
+                redl_tc = l_tc.item()
 
             for p in parameters_sc:
+                p.requires_grad_(requires_grad=False)
+            for p in parameters_tc:
                 p.requires_grad_(requires_grad=False)
           
             l_main.backward(retain_graph=True)
@@ -311,14 +322,25 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
                 p.requires_grad_(requires_grad=True)
             for p in parameters_main:
                 p.requires_grad_(requires_grad=False)
-            
-         
-            l_sc.backward()
+                     
+            l_sc.backward(retain_graph=True)
             grad_norm_sc = torch.nn.utils.clip_grad_norm_(
                 parameters_sc, hparams.grad_clip_thresh)
 
-
             optimizer_sc.step()
+
+            for p in parameters_tc:
+                p.requires_grad_(requires_grad=True)
+            for p in parameters_main:
+                p.requires_grad_(requires_grad=False)
+            for p in parameters_sc:
+                p.requires_grad_(requires_grad=False)
+                     
+            l_tc.backward()
+            grad_norm_tc = torch.nn.utils.clip_grad_norm_(
+                parameters_tc, hparams.grad_clip_thresh)
+
+            optimizer_tc.step()
 
             for p in parameters_main:
                 p.requires_grad_(requires_grad=True)
@@ -329,9 +351,9 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
                 duration = time.time() - start
                 task = 'TTS' if i%2 == 0 else 'VC'
                 print(("Train {} {} {:.6f} Grad Norm {:.6f} {:.2f}s/it".format(
-                    task, iteration, redl_main+redl_sc, grad_norm_main, duration)))
+                    task, iteration, redl_main+redl_sc+redl_tc, grad_norm_main, duration)))
                 logger.log_training(
-                    redl_main+redl_sc, reduced_losses, reduced_acces, grad_norm_main, learning_rate, duration, iteration)
+                    redl_main+redl_sc+redl_tc, reduced_losses, reduced_acces, grad_norm_main, learning_rate, duration, iteration)
 
             if (iteration % hparams.iters_per_checkpoint == 0):
                 validate(model, criterion, valset, iteration,
@@ -340,7 +362,7 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
                 if rank == 0:
                     checkpoint_path = os.path.join(
                         output_directory, "checkpoint_{}".format(iteration))
-                    save_checkpoint(model, optimizer_main, optimizer_sc, learning_rate, iteration,
+                    save_checkpoint(model, optimizer_main, optimizer_sc, optimizer_tc, learning_rate, iteration,
                                     checkpoint_path)
 
             iteration += 1

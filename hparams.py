@@ -99,7 +99,7 @@ def create_hparams(hparams_string=None, verbose=False):
         ################################
         use_saved_learning_rate=False,
         #learning_rate=1e-4,
-        learning_rate=1e-4,
+        learning_rate=1e-3,
         weight_decay=1e-6,
         grad_clip_thresh=5.0,
         batch_size=8,
@@ -110,6 +110,8 @@ def create_hparams(hparams_string=None, verbose=False):
         text_classifier_loss_w=1.0,
         speaker_adversial_loss_w=20.,
         speaker_classifier_loss_w=0.1,
+        text_adversarial_loss_w=20.,
+        text_clf_loss_w=0.1,
         ce_loss=False,
         
         E  = 128, 
