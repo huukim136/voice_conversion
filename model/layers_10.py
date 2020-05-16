@@ -20,7 +20,7 @@ class SpeakerClassifier(nn.Module):
             if i == 0:
                 in_dim = hparams.encoder_embedding_dim
                 out_dim = hparams.SC_hidden_dim
-            elif i == (hparams.SC_n_convolutions-1):
+            else:
                 in_dim = hparams.SC_hidden_dim
                 out_dim = hparams.SC_hidden_dim
             
@@ -61,13 +61,12 @@ class SpeakerEncoder(nn.Module):
         self.lstm = nn.LSTM(hparams.n_mel_channels, int(hparams.speaker_encoder_hidden_dim / 2), 
                             num_layers=2, batch_first=True,  bidirectional=True, dropout=hparams.speaker_encoder_dropout)
         self.projection1 = LinearNorm(hparams.speaker_encoder_hidden_dim, 
-                                      hparams.speaker_encoder_hidden_dim, 
+                                      hparams.speaker_embedding_dim, 
                                       w_init_gain='tanh')
         self.projection3 = LinearNorm(hparams.speaker_encoder_hidden_dim, 
-                                      hparams.speaker_encoder_hidden_dim, 
+                                      hparams.speaker_embedding_dim, 
                                       w_init_gain='tanh')
-        self.projection2 = LinearNorm(hparams.speaker_encoder_hidden_dim, hparams.n_speakers) 
-        self.projection4 = LinearNorm(hparams.speaker_encoder_hidden_dim, hparams.n_speakers)
+        self.projection2 = LinearNorm(hparams.speaker_embedding_dim, hparams.n_speakers) 
     
     def forward(self, x, input_lengths):
         '''
@@ -95,9 +94,10 @@ class SpeakerEncoder(nn.Module):
 
         frame_spk_embeddings = F.tanh(self.projection1(outputs))
         frame_spk_embeddings = frame_spk_embeddings[initial_index]
-        frame_spk_embeddings_logits = self.projection4(frame_spk_embeddings)
         # L2 normalizing #
         frame_spk_embeddings = frame_spk_embeddings / torch.norm(frame_spk_embeddings, dim=2, keepdim=True)
+        # logits = self.projection2(outputs)
+
 
         outputs = torch.sum(outputs,dim=1) / sorted_lengths.unsqueeze(1).float() # mean pooling -> [batch_size, dim]
 
@@ -107,7 +107,7 @@ class SpeakerEncoder(nn.Module):
         embeddings = outputs / torch.norm(outputs, dim=1, keepdim=True)
         logits = self.projection2(outputs)
 
-        return logits, embeddings, frame_spk_embeddings, frame_spk_embeddings_logits
+        return logits, embeddings, frame_spk_embeddings
     
     def inference(self, x): 
         
@@ -320,7 +320,6 @@ class AudioEncoder(nn.Module):
     def forward(self, x, input_lengths):
         '''
         x  [batch_size, mel_bins, T]
-
         return [batch_size, T, channels]
         '''
         x = x.transpose(1, 2)
@@ -668,10 +667,8 @@ class TextEncoder(nn.Module):
     def forward(self, x, input_lengths):
         '''
         x: [batch_size, channel, T]
-
         return [batch_size, T, channel]
         '''
-        # pdb.set_trace()
         for conv in self.convolutions:
             x = F.dropout(F.relu(conv(x)), self.dropout, self.training)
 
@@ -694,7 +691,7 @@ class TextEncoder(nn.Module):
             outputs, batch_first=True)
 
         outputs = self.projection(outputs)
-        outputs = outputs/torch.norm(outputs, dim=2,keepdim=True)
+
         return outputs[initial_index]
 
     def inference(self, x):

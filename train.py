@@ -143,9 +143,9 @@ def validate(model, criterion, valset, iteration, batch_size, n_gpus,
             # pdb.set_trace()
 
             if i%2 == 0:
-                y_pred, mi_lb = model(x, True)
+                y_pred = model(x, True)
             else:
-                y_pred, mi_lb = model(x, False)
+                y_pred = model(x, False)
             
             losses, acces, l_main, l_sc = criterion(y_pred, y, False)
             if distributed_run:
@@ -196,8 +196,8 @@ def validate(model, criterion, valset, iteration, batch_size, n_gpus,
     model.train()
     if rank == 0:
         print(("Validation loss {}: TTS {:9f}  VC {:9f}".format(iteration, val_loss_tts, val_loss_vc)))
-        logger.log_validation(val_loss_tts, reduced_val_tts_losses, reduced_val_tts_acces, model, y_tts, y_tts_pred, iteration ,mi_lb, 'tts')
-        logger.log_validation(val_loss_vc, reduced_val_vc_losses, reduced_val_vc_acces, model, y_vc, y_vc_pred, iteration, mi_lb, 'vc')
+        logger.log_validation(val_loss_tts, reduced_val_tts_losses, reduced_val_tts_acces, model, y_tts, y_tts_pred, iteration, 'tts')
+        logger.log_validation(val_loss_vc, reduced_val_vc_losses, reduced_val_vc_acces, model, y_vc, y_vc_pred, iteration, 'vc')
 
 
 
@@ -277,10 +277,10 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
             x, y = model.parse_batch(batch)
 
             if i % 2 == 0:
-                y_pred, mi_lb = model(x, True)
+                y_pred = model(x, True)
                 losses, acces, l_main, l_sc  = criterion(y_pred, y, True)
             else:
-                y_pred, mi_lb = model(x, False)
+                y_pred = model(x, False)
                 losses, acces, l_main, l_sc  = criterion(y_pred, y, False)
 
             if hparams.distributed_run:
@@ -300,22 +300,8 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
 
             for p in parameters_sc:
                 p.requires_grad_(requires_grad=False)
-            
-            with torch.no_grad():
-                mi_part = 0.1 * mi_lb
-            l_main = l_main + mi_part
-            model.zero_grad()
+          
             l_main.backward(retain_graph=True)
-            grad_norm_main = torch.nn.utils.clip_grad_norm_(
-                parameters_main, hparams.grad_clip_thresh)
-
-            optimizer_main.step()
-
-            with torch.enable_grad():
-                loss2 = -0.1 * mi_lb
-            model.zero_grad()   
-            loss2.backward(retain_graph=True)
-
             grad_norm_main = torch.nn.utils.clip_grad_norm_(
                 parameters_main, hparams.grad_clip_thresh)
 
@@ -342,10 +328,10 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
 
                 duration = time.time() - start
                 task = 'TTS' if i%2 == 0 else 'VC'
-                print(("Train {} {} {:.6f} Grad Norm {:.6f} {:.2f}s/it mi_lb {}".format(
-                    task, iteration, redl_main+redl_sc, grad_norm_main, duration, mi_lb)))
+                print(("Train {} {} {:.6f} Grad Norm {:.6f} {:.2f}s/it".format(
+                    task, iteration, redl_main+redl_sc, grad_norm_main, duration)))
                 logger.log_training(
-                    redl_main+redl_sc, reduced_losses, reduced_acces, grad_norm_main, learning_rate, duration, iteration, mi_lb)
+                    redl_main+redl_sc, reduced_losses, reduced_acces, grad_norm_main, learning_rate, duration, iteration)
 
             if (iteration % hparams.iters_per_checkpoint == 0):
                 validate(model, criterion, valset, iteration,
