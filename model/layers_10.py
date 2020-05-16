@@ -5,7 +5,6 @@ from torch.nn import functional as F
 from .basic_layers import sort_batch, ConvNorm, LinearNorm, Attention, tile
 from .utils import get_mask_from_lengths
 from .beam import Beam, GNMTGlobalScorer
-import pdb
         
 class SpeakerClassifier(nn.Module):
     '''
@@ -20,7 +19,7 @@ class SpeakerClassifier(nn.Module):
             if i == 0:
                 in_dim = hparams.encoder_embedding_dim
                 out_dim = hparams.SC_hidden_dim
-            elif i == (hparams.SC_n_convolutions-1):
+            else:
                 in_dim = hparams.SC_hidden_dim
                 out_dim = hparams.SC_hidden_dim
             
@@ -61,12 +60,9 @@ class SpeakerEncoder(nn.Module):
         self.lstm = nn.LSTM(hparams.n_mel_channels, int(hparams.speaker_encoder_hidden_dim / 2), 
                             num_layers=2, batch_first=True,  bidirectional=True, dropout=hparams.speaker_encoder_dropout)
         self.projection1 = LinearNorm(hparams.speaker_encoder_hidden_dim, 
-                                      hparams.speaker_encoder_hidden_dim, 
+                                      hparams.speaker_embedding_dim, 
                                       w_init_gain='tanh')
-        self.projection3 = LinearNorm(hparams.speaker_encoder_hidden_dim, 
-                                      hparams.speaker_encoder_hidden_dim//2, 
-                                      w_init_gain='tanh')
-        self.projection2 = LinearNorm(hparams.speaker_encoder_hidden_dim//2, hparams.n_speakers) 
+        self.projection2 = LinearNorm(hparams.speaker_embedding_dim, hparams.n_speakers) 
     
     def forward(self, x, input_lengths):
         '''
@@ -76,9 +72,7 @@ class SpeakerEncoder(nn.Module):
          logits [batch_size, n_speakers]
          embeddings [batch_size, embedding_dim]
         '''
-        #pdb.set_trace()
         x = x.transpose(1,2)
-
         x_sorted, sorted_lengths, initial_index = sort_batch(x, input_lengths)
 
         x = nn.utils.rnn.pack_padded_sequence(
@@ -89,25 +83,16 @@ class SpeakerEncoder(nn.Module):
 
         outputs, _ = nn.utils.rnn.pad_packed_sequence(
             outputs, batch_first=True)
-
-        # outputs = torch.sum(outputs,dim=1) / sorted_lengths.unsqueeze(1).float() # mean pooling -> [batch_size, dim]
-
-        frame_spk_embeddings = F.tanh(self.projection1(outputs))
-        frame_spk_embeddings = frame_spk_embeddings[initial_index]
-        # L2 normalizing #
-        frame_spk_embeddings = frame_spk_embeddings / torch.norm(frame_spk_embeddings, dim=2, keepdim=True)
-        # logits = self.projection2(outputs)
-
-
+ 
         outputs = torch.sum(outputs,dim=1) / sorted_lengths.unsqueeze(1).float() # mean pooling -> [batch_size, dim]
 
-        outputs = F.tanh(self.projection3(outputs))
+        outputs = F.tanh(self.projection1(outputs))
         outputs = outputs[initial_index]
         # L2 normalizing #
         embeddings = outputs / torch.norm(outputs, dim=1, keepdim=True)
         logits = self.projection2(outputs)
 
-        return logits, embeddings, frame_spk_embeddings
+        return logits, embeddings
     
     def inference(self, x): 
         
@@ -115,149 +100,14 @@ class SpeakerEncoder(nn.Module):
         self.lstm.flatten_parameters()
         outputs, _ = self.lstm(x)
 
-        # outputs = torch.sum(outputs,dim=1) / float(outputs.size(1)) # mean pooling -> [batch_size, dim]
-        frame_spk_embeddings = F.tanh(self.projection1(outputs))
-        frame_spk_embeddings = frame_spk_embeddings / torch.norm(frame_spk_embeddings, dim=2, keepdim=True)
-        # logits = self.projection2(outputs)
-
-        outputs = torch.sum(outputs,dim=1) / float(outputs.size(1))
-        outputs = F.tanh(self.projection3(outputs))
+        outputs = torch.sum(outputs,dim=1) / float(outputs.size(1)) # mean pooling -> [batch_size, dim]
+        outputs = F.tanh(self.projection1(outputs))
         embeddings = outputs / torch.norm(outputs, dim=1, keepdim=True)
         logits = self.projection2(outputs)
 
         pid = torch.argmax(logits, dim=1)
 
-        return pid, embeddings, frame_spk_embeddings
-
-class Speaker_Text_Alignments(nn.Module):
-    '''
-    one layer bi-lstm
-    '''
-    def __init__(self, hparams):
-        super(Speaker_Text_Alignments, self).__init__()
-        self.se_alignment = VanillaAttention(hparams)
-        # self.lstm = nn.LSTM(hparams.encoder_embedding_dim, int(hparams.encoder_embedding_dim/2), 
-        #                     num_layers=1, batch_first=True, bidirectional=True)
-    
-    def forward(self, x, input_lengths):
-        '''
-        x [B, T, dim]
-        '''
-        x_sorted, sorted_lengths, initial_index = sort_batch(x, input_lengths)
-
-        x = nn.utils.rnn.pack_padded_sequence(
-            x_sorted, sorted_lengths.cpu().numpy(), batch_first=True)
-        
-        self.lstm.flatten_parameters()
-        outputs, _ = self.lstm(x)
-
-        outputs, _ = nn.utils.rnn.pad_packed_sequence(
-            outputs, batch_first=True)
-        outputs = outputs[initial_index]
-
-        return outputs   
-
-
-class VanillaAttention(nn.Module):
-    """
-    Inputs:
-        last_hidden: (batch_size, hidden_size)
-        encoder_outputs: (batch_size, max_time, hidden_size)
-    Returns:
-        attention_weights: (batch_size, max_time)
-    """
-    def __init__(self, hparams, method="bahdanau", mlp=False):
-        super(VanillaAttention, self).__init__()
-        self.query_dim = hparams.encoder_embedding_dim  # q
-        self.num_hidden = hparams.E # h
-        self.embedding_dim = hparams.n_mel_channels # e
-        self.output = hparams.E
-        self.method = "bahdanau"
-
-        if method == 'dot':
-            pass
-        elif method == 'general':
-            self.Wa = nn.Linear(hidden_size, hidden_size, bias=False)
-        elif method == "concat":
-            self.Wa = nn.Linear(hidden_size, hidden_size, bias=False)
-            self.va = nn.Parameter(torch.FloatTensor(batch_size, hidden_size))
-        elif method == 'bahdanau':
-            self.Wa = nn.Linear(self.query_dim, self.num_hidden, bias=False)
-            self.Ua = nn.Linear(self.embedding_dim, self.num_hidden, bias=False)
-            self.va = nn.Parameter(torch.FloatTensor(hparams.batch_size, self.num_hidden))
-        else:
-            raise NotImplementedError
-
-        self.mlp = mlp
-        if mlp:
-            self.phi = nn.Linear(hidden_size, hidden_size, bias=False)
-            self.psi = nn.Linear(hidden_size, hidden_size, bias=False)
-        nn.init.normal_(self.va, 0, 0.1)
-
-    def forward(self, last_hidden, encoder_outputs, mask, seq_len=None):
-        # pdb.set_trace()
-        batch_size, seq_lens, _ = encoder_outputs.size()
-        if self.mlp:
-            last_hidden = self.phi(last_hidden)
-            encoder_outputs = self.psi(encoder_outputs)
-
-        attention_energies , encoded_text, query = self._score(last_hidden, encoder_outputs, self.method)
-
-        # if seq_len is not None:
-        #     attention_energies = mask_3d(attention_energies, seq_len, -float('inf'))
-        attention_energies = attention_energies.unsqueeze(1)
-        if (attention_energies.size(2) != mask.size(2)):
-            # pdb.set_trace()
-            zeros = torch.zeros(attention_energies.size(0), attention_energies.size(1), attention_energies.size(2))
-            # source = torch.ones(30, 35, 49)
-            zeros[:, :, :mask.size(2)] = mask
-            mask = zeros
-            mask = mask.type('torch.ByteTensor')
-            mask = to_gpu(mask)
-        attention_energies[~mask] = float('-inf')
-        scores = F.softmax(attention_energies, -1)
-        expectations_of_sampling = torch.bmm(scores, encoded_text).squeeze(1)
-        scores = scores.squeeze(1)
-        return expectations_of_sampling, scores, query
-
-    def _score(self, last_hidden, encoder_outputs, method):
-        """
-        Computes an attention score
-        :param last_hidden: (batch_size, hidden_dim)
-        :param encoder_outputs: (batch_size, max_time, hidden_dim)
-        :param method: str (`dot`, `general`, `concat`, `bahdanau`)
-        :return: a score (batch_size, max_time)
-        """
-        # pdb.set_trace()
-        # assert encoder_outputs.size()[-1] == self.hidden_size
-
-        if method == 'dot':
-            last_hidden = last_hidden.unsqueeze(-1)
-            return encoder_outputs.bmm(last_hidden).squeeze(-1)
-
-        elif method == 'general':
-            x = self.Wa(last_hidden)
-            x = x.unsqueeze(-1)
-            return encoder_outputs.bmm(x).squeeze(-1)
-
-        elif method == "concat":
-            x = last_hidden.unsqueeze(1)
-            x = F.tanh(self.Wa(torch.cat((x, encoder_outputs), 1)))
-            return x.bmm(self.va.unsqueeze(2)).squeeze(-1)
-
-        elif method == "bahdanau":
-            x = last_hidden.unsqueeze(1)
-            b = self.Ua(encoder_outputs)
-            a = self.Wa(x)
-            out = F.tanh(a + b)
-            return out.bmm(self.va.unsqueeze(2)).squeeze(-1), b, a 
-
-        else:
-            raise NotImplementedError
-
-    def extra_repr(self):
-        return 'score={}, mlp_preprocessing={}'.format(
-            self.method, self.mlp)
+        return pid, embeddings 
 
 
 class MergeNet(nn.Module):
@@ -453,8 +303,6 @@ class AudioSeq2seq(nn.Module):
         return hidden, logit, alignments
 
     def decode(self, decoder_input):
-        # import pdb
-        # pdb.set_trace()
 
         cell_input = torch.cat((decoder_input, self.attention_context),-1)
         self.decoder_hidden, self.decoder_cell = self.decoder_rnn(
@@ -478,12 +326,11 @@ class AudioSeq2seq(nn.Module):
         hidden_and_context = torch.cat((self.decoder_hidden, self.attention_context), -1)
 
         hidden = self.project_to_hidden(hidden_and_context)
-        normed_hidden = hidden/torch.norm(hidden,dim=1,keepdim=True)
         
         # dropout to increasing g
         logit = self.project_to_n_symbols(F.dropout(hidden, 0.5, self.training))
 
-        return normed_hidden, logit, self.attention_weigths
+        return hidden, logit, self.attention_weigths
     
     def forward(self, mel, mel_lengths, decoder_inputs, start_embedding):
         '''
@@ -535,8 +382,6 @@ class AudioSeq2seq(nn.Module):
         return
         hidden_outputs [1, ]
         '''
-        import pdb
-        pdb.set_trace()
         MAX_LEN = 100
 
         decoder_input = start_embedding
@@ -570,8 +415,6 @@ class AudioSeq2seq(nn.Module):
 
     def inference_beam(self, x, start_embedding, embedding_table,
             beam_width=20,):
-        #import pdb
-        #pdb.set_trace()
  
         memory = self.encoder.inference(x).expand(beam_width, -1,-1)
 
@@ -579,7 +422,7 @@ class AudioSeq2seq(nn.Module):
         n_best = 5
 
         self.initialize_decoder_states(memory, mask=None)
-        decoder_input = tile(start_embedding, beam_width) # copy beam_width times the start_embedding --> we have decoder_input.shape = [10, 512]
+        decoder_input = tile(start_embedding, beam_width)
 
 
         beam = Beam(beam_width, 0, self.eos, self.eos, 
@@ -671,7 +514,6 @@ class TextEncoder(nn.Module):
 
         return [batch_size, T, channel]
         '''
-        # pdb.set_trace()
         for conv in self.convolutions:
             x = F.dropout(F.relu(conv(x)), self.dropout, self.training)
 
@@ -694,7 +536,7 @@ class TextEncoder(nn.Module):
             outputs, batch_first=True)
 
         outputs = self.projection(outputs)
-        outputs = outputs/torch.norm(outputs, dim=2,keepdim=True)
+
         return outputs[initial_index]
 
     def inference(self, x):
@@ -707,7 +549,6 @@ class TextEncoder(nn.Module):
         outputs, _ = self.lstm(x)
 
         outputs = self.projection(outputs)
-        outputs = outputs/torch.norm(outputs, dim=2,keepdim=True)
 
         return outputs
 
@@ -773,132 +614,3 @@ class PostNet(nn.Module):
             o = x + input
 
         return o
-
-
-class GST(nn.Module):
-
-    def __init__(self, hparams):
-
-        super(GST, self).__init__()
-        self.encoder = ReferenceEncoder(hparams)
-        self.stl = STL(hparams)
-
-    def forward(self, inputs):
-        enc_out = self.encoder(inputs)
-        style_embed = self.stl(enc_out)
-
-        return style_embed
-
-
-class ReferenceEncoder(nn.Module):
-    '''
-    inputs --- [N, Ty/r, n_mels*r]  mels
-    outputs --- [N, ref_enc_gru_size]
-    '''
-
-    def __init__(self, hparams):
-
-        super(ReferenceEncoder, self).__init__()
-        K = len(hparams.ref_enc_filters)
-        filters = [1] + hparams.ref_enc_filters
-        convs = [nn.Conv2d(in_channels=filters[i],
-                           out_channels=filters[i + 1],
-                           kernel_size=(3, 3),
-                           stride=(2, 2),
-                           padding=(1, 1)) for i in range(K)]
-        self.convs = nn.ModuleList(convs)
-        self.bns = nn.ModuleList([nn.BatchNorm2d(num_features=hparams.ref_enc_filters[i]) for i in range(K)])
-
-        out_channels = self.calculate_channels(hparams.n_mel_channels, 3, 2, 1, K)
-        self.gru = nn.GRU(input_size=hparams.ref_enc_filters[-1] * out_channels,
-                          hidden_size=hparams.E // 2,
-                          batch_first=True)
-
-    def forward(self, inputs):
-        N = inputs.size(0)
-        out = inputs.view(N, 1, -1, hparams.n_mel_channels)  # [N, 1, Ty, n_mels]
-        for conv, bn in zip(self.convs, self.bns):
-            out = conv(out)
-            out = bn(out)
-            out = F.relu(out)  # [N, 128, Ty//2^K, n_mels//2^K]
-
-        out = out.transpose(1, 2)  # [N, Ty//2^K, 128, n_mels//2^K]
-        T = out.size(1)
-        N = out.size(0)
-        out = out.contiguous().view(N, T, -1)  # [N, Ty//2^K, 128*n_mels//2^K]
-
-        self.gru.flatten_parameters()
-        memory, out = self.gru(out)  # out --- [1, N, E//2]
-
-        return out.squeeze(0)
-
-    def calculate_channels(self, L, kernel_size, stride, pad, n_convs):
-        for i in range(n_convs):
-            L = (L - kernel_size + 2 * pad) // stride + 1
-        return L
-
-class STL(nn.Module):
-    '''
-    inputs --- [N, E//2]
-    '''
-
-    def __init__(self, hparams):
-
-        super(STL, self).__init__()
-        self.embed = nn.flatten_parameters(torch.FloatTensor(hparams.token_num, hp.E // hparams.num_heads))
-        d_q = hparams.E // 2
-        d_k = hparams.E // hparams.num_heads
-        # self.attention = MultiHeadAttention(hp.num_heads, d_model, d_q, d_v)
-        self.attention = MultiHeadAttention(query_dim=d_q, key_dim=d_k, num_units=hparams.E, num_heads=hparams.num_heads)
-
-        init.normal_(self.embed, mean=0, std=0.5)
-
-    def forward(self, inputs):
-        N = inputs.size(0)
-        query = inputs.unsqueeze(1)  # [N, 1, E//2]
-        keys = F.tanh(self.embed).unsqueeze(0).expand(N, -1, -1)  # [N, token_num, E // num_heads]
-        style_embed = self.attention(query, keys)
-
-        return style_embed
-
-
-class MultiHeadAttention(nn.Module):
-    '''
-    input:
-        query --- [N, T_q, query_dim]
-        key --- [N, T_k, key_dim]
-    output:
-        out --- [N, T_q, num_units]
-    '''
-
-    def __init__(self, query_dim, key_dim, num_units, num_heads):
-
-        super(MultiHeadAttention, self).__init__()
-        self.num_units = num_units
-        self.num_heads = num_heads
-        self.key_dim = key_dim
-
-        self.W_query = nn.Linear(in_features=query_dim, out_features=num_units, bias=False)
-        self.W_key = nn.Linear(in_features=key_dim, out_features=num_units, bias=False)
-        self.W_value = nn.Linear(in_features=key_dim, out_features=num_units, bias=False)
-
-    def forward(self, query, key):
-        querys = self.W_query(query)  # [N, T_q, num_units]
-        keys = self.W_key(key)  # [N, T_k, num_units]
-        values = self.W_value(key)
-
-        split_size = self.num_units // self.num_heads
-        querys = torch.stack(torch.split(querys, split_size, dim=2), dim=0)  # [h, N, T_q, num_units/h]
-        keys = torch.stack(torch.split(keys, split_size, dim=2), dim=0)  # [h, N, T_k, num_units/h]
-        values = torch.stack(torch.split(values, split_size, dim=2), dim=0)  # [h, N, T_k, num_units/h]
-
-        # score = softmax(QK^T / (d_k ** 0.5))
-        scores = torch.matmul(querys, keys.transpose(2, 3))  # [h, N, T_q, T_k]
-        scores = scores / (self.key_dim ** 0.5)
-        scores = F.softmax(scores, dim=3)
-
-        # out = score * V
-        out = torch.matmul(scores, values)  # [h, N, T_q, num_units/h]
-        out = torch.cat(torch.split(out, 1, dim=0), dim=3).squeeze(0)  # [N, T_q, num_units]
-
-        return out

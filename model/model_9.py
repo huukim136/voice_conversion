@@ -7,7 +7,7 @@ from .utils import to_gpu
 from .decoder_9 import Decoder
 from .basic_layers import ConvNorm, LinearNorm
 from torch.nn import functional as F
-from .layers_10 import SpeakerClassifier, SpeakerEncoder, AudioSeq2seq, TextEncoder,  PostNet, MergeNet, GST
+from .layers_10 import SpeakerClassifier, SpeakerEncoder, AudioSeq2seq, TextEncoder,  PostNet, MergeNet#, GST
 import pdb
 
 # path_save = "/home/hk/voice_conversion/nonparaSeq2seqVC_code/pre-train/reader/spk_embeddings"
@@ -159,7 +159,7 @@ class Parrot(nn.Module):
         start_embedding = self.embedding(start_embedding)
 
         # -> [B, speaker_embedding_dim] 
-        speaker_logit_from_mel, speaker_embedding, frame_spk_embeddings = self.speaker_encoder(mel_padded, mel_lengths) 
+        speaker_logit_from_mel, speaker_embedding = self.speaker_encoder(mel_padded, mel_lengths) 
         #speaker_embedding = self.speaker_encoder(mel_padded, mel_lengths) 
 
         if self.spemb_input:
@@ -183,11 +183,11 @@ class Parrot(nn.Module):
             hidden = self.merge_net(audio_seq2seq_hidden, text_lengths)
             # speaker_logit_from_mel, speaker_embedding, SE_alignments = self.speaker_encoder(mel_padded, mel_lengths,audio_seq2seq_hidden,text_lengths )
 
-        if (frame_spk_embeddings.size(1) != mel_lengths[torch.argmax(mel_lengths)]):
+        # if (frame_spk_embeddings.size(1) != mel_lengths[torch.argmax(mel_lengths)]):
 
-            mask = self.get_mask(frame_spk_embeddings, mel_lengths, True)
-        else:
-            mask = self.get_mask(frame_spk_embeddings, mel_lengths)
+        #     mask = self.get_mask(frame_spk_embeddings, mel_lengths, True)
+        # else:
+        #     mask = self.get_mask(frame_spk_embeddings, mel_lengths)
         #mask = mask.expand(-1,hidden.size(1),-1)
         #contexts , scores = self.se_alignment(hidden, frame_spk_embeddings, mask)
         # pdb.set_trace()
@@ -270,4 +270,3 @@ class Parrot(nn.Module):
             text_hidden, audio_seq2seq_hidden, audio_seq2seq_phids, audio_seq2seq_alignments,
             #speaker_id, speaker_embedding)
             speaker_id)
-

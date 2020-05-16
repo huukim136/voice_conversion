@@ -99,10 +99,10 @@ def create_hparams(hparams_string=None, verbose=False):
         ################################
         use_saved_learning_rate=False,
         #learning_rate=1e-4,
-        learning_rate=1e-4,
+        learning_rate=1e-5,
         weight_decay=1e-6,
         grad_clip_thresh=5.0,
-        batch_size=8,
+        batch_size=16,
         
         contrastive_loss_w=30.0,
         consistent_loss_w=0.0,
