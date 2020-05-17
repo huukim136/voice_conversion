@@ -161,7 +161,7 @@ class Parrot(nn.Module):
         start_embedding = self.embedding(start_embedding)
 
         # -> [B, speaker_embedding_dim] 
-        speaker_logit_from_mel, speaker_embedding, frame_spk_embeddings = self.speaker_encoder(mel_padded, mel_lengths) 
+        speaker_logit_from_mel, speaker_embedding, frame_spk_embeddings , frame_spk_embeddings_logits = self.speaker_encoder(mel_padded, mel_lengths) 
         #speaker_embedding = self.speaker_encoder(mel_padded, mel_lengths) 
 
         if self.spemb_input:
@@ -204,7 +204,7 @@ class Parrot(nn.Module):
 
         outputs = [predicted_mel, post_output, predicted_stop, alignments,
                   text_hidden, audio_seq2seq_hidden, audio_seq2seq_logit, audio_seq2seq_alignments, 
-                  speaker_logit_from_mel, speaker_logit_from_mel_hidden,
+                  speaker_logit_from_mel, frame_spk_embeddings_logits, speaker_logit_from_mel_hidden,
                   text_lengths, mel_lengths, scores]
 
         #outputs = [predicted_mel, post_output, predicted_stop, alignments,
