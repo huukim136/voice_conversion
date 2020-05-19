@@ -231,7 +231,7 @@ class Parrot(nn.Module):
         start_embedding = self.embedding(start_embedding) # [1, embedding_dim]
 
         #-> [B, text_len+1, hidden_dim] [B, text_len+1, n_symbols] [B, text_len+1, T/r]
-        speaker_id, speaker_embedding, frame_spk_embeddings = self.speaker_encoder.inference(mel_reference)
+        speaker_id, speaker_embedding = self.speaker_encoder.inference(mel_reference)
         if spk_embeddings_save:
             spk_embed = speaker_embedding.data.cpu().numpy()[0]
             spk_embeddings_path = os.path.join(path_save, 'spk_embedding.npy')
