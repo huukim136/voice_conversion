@@ -85,6 +85,7 @@ class SpeakerEncoder(nn.Module):
 
         outputs, _ = nn.utils.rnn.pad_packed_sequence(
             outputs, batch_first=True)
+        outputs = outputs / torch.norm(outputs, dim=2, keepdim=True)
  
         # outputs = torch.sum(outputs,dim=1) / sorted_lengths.unsqueeze(1).float() # mean pooling -> [batch_size, dim]
 
@@ -131,7 +132,7 @@ class DenseBlock(nn.Module):
     def forward(self, x, input_lengths, mask_mel):
         '''
          x  [batch_size, mel_bins, T]
-
+    
          return 
          logits [batch_size, n_speakers]
          embeddings [batch_size, embedding_dim]
@@ -518,12 +519,12 @@ class AudioSeq2seq(nn.Module):
         hidden_and_context = torch.cat((self.decoder_hidden, self.attention_context), -1)
 
         hidden = self.project_to_hidden(hidden_and_context)
-        normed_hidden = hidden/torch.norm(hidden,dim=1,keepdim=True)
+        # normed_hidden = hidden/torch.norm(hidden,dim=1,keepdim=True)
         
         # dropout to increasing g
         logit = self.project_to_n_symbols(F.dropout(hidden, 0.5, self.training))
 
-        return normed_hidden, logit, self.attention_weigths
+        return hidden, logit, self.attention_weigths
     
     def forward(self, mel, mel_lengths, decoder_inputs, start_embedding):
         '''
@@ -734,7 +735,7 @@ class TextEncoder(nn.Module):
             outputs, batch_first=True)
 
         outputs = self.projection(outputs)
-        outputs = outputs/torch.norm(outputs, dim=2,keepdim=True)
+        # outputs = outputs/torch.norm(outputs, dim=2,keepdim=True)
         return outputs[initial_index]
 
     def inference(self, x):
