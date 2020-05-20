@@ -190,7 +190,7 @@ class Parrot(nn.Module):
         lstm_output = lstm_output + contexts
         mask_mel = self.get_mask(mel_lengths)
         mask_mel = mask_mel.transpose(1,2)
-        mask_mel = mask_mel.expand(-1,-1,lstm_output.size(2))
+        mask_mel = mask_mel.expand(-1,-1,128)
         speaker_logit_from_mel, spk_embedding = self.dense_block(lstm_output,mel_lengths, mask_mel)
 
         # predicted_mel, predicted_stop, alignments = self.decoder(hidden, mel_padded, text_lengths)
@@ -202,13 +202,7 @@ class Parrot(nn.Module):
                   speaker_logit_from_mel, speaker_logit_from_mel_hidden,
                   text_lengths, mel_lengths, scores]
 
-        #outputs = [predicted_mel, post_output, predicted_stop, alignments,
-        #          text_hidden, audio_seq2seq_hidden, audio_seq2seq_logit, audio_seq2seq_alignments, 
-        #          speaker_logit_from_mel_hidden,
-        #          text_lengths, mel_lengths]
-
         return outputs
-
     
     def inference(self, inputs, input_text, mel_reference, beam_width, spk_embeddings_save=False):
         '''

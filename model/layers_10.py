@@ -58,8 +58,8 @@ class SpeakerEncoder(nn.Module):
     '''
     def __init__(self, hparams):
         super(SpeakerEncoder, self).__init__()
-        self.lstm = nn.LSTM(hparams.n_mel_channels, int(hparams.speaker_encoder_hidden_dim / 2), 
-                            num_layers=2, batch_first=True,  bidirectional=True, dropout=hparams.speaker_encoder_dropout)
+        self.lstm = nn.LSTM(hparams.n_mel_channels, int(hparams.speaker_encoder_hidden_dim), 
+                            num_layers=1, batch_first=True,  bidirectional=False, dropout=hparams.speaker_encoder_dropout)
         self.projection1 = LinearNorm(hparams.speaker_encoder_hidden_dim, 
                                       hparams.speaker_encoder_hidden_dim, 
                                       w_init_gain='tanh')
@@ -121,13 +121,15 @@ class DenseBlock(nn.Module):
     '''
     def __init__(self, hparams):
         super(DenseBlock, self).__init__()
+        self.lstm = nn.LSTM(hparams.speaker_embedding_dim, int(hparams.speaker_encoder_hidden_dim), 
+                            num_layers=1, batch_first=True,  bidirectional=False, dropout=hparams.speaker_encoder_dropout)
         self.projection1 = LinearNorm(hparams.speaker_encoder_hidden_dim, 
-                                      hparams.speaker_encoder_hidden_dim, 
+                                      hparams.speaker_embedding_dim, 
                                       w_init_gain='tanh')
         self.projection2 = LinearNorm(hparams.speaker_encoder_hidden_dim, 
-                                      hparams.speaker_encoder_hidden_dim, 
+                                      hparams.speaker_embedding_dim, 
                                       w_init_gain='tanh')
-        self.projection3 = LinearNorm(hparams.speaker_encoder_hidden_dim, hparams.n_speakers) 
+        self.projection3 = LinearNorm(hparams.speaker_embedding_dim, hparams.n_speakers) 
     
     def forward(self, x, input_lengths, mask_mel):
         '''
@@ -142,13 +144,28 @@ class DenseBlock(nn.Module):
         # outputs = torch.sum(outputs,dim=1) / sorted_lengths.unsqueeze(1).float() # mean pooling -> [batch_size, dim]
 
         x = F.tanh(self.projection1(x))
-        x = F.tanh(self.projection2(x))
-        x[~mask_mel]= 0
-        x = torch.sum(x,dim=1) / input_lengths.unsqueeze(1).float() # mean pooling -> [batch_size, dim]
 
+        x_sorted, sorted_lengths, initial_index = sort_batch(x, input_lengths)
+
+        x = nn.utils.rnn.pack_padded_sequence(
+            x_sorted, sorted_lengths.cpu().numpy(), batch_first=True)
+
+        self.lstm.flatten_parameters()
+        outputs, _ = self.lstm(x)
+
+        outputs, _ = nn.utils.rnn.pad_packed_sequence(
+            outputs, batch_first=True)
+        
+        outputs = torch.sum(outputs,dim=1) / sorted_lengths.unsqueeze(1).float() # mean pooling -> [batch_size, dim]
+
+        x = F.tanh(self.projection2(outputs))
+        # x[~mask_mel]= 0
+        outputs = outputs[initial_index]
+
+        embeddings = x / torch.norm(x, dim=1, keepdim=True)
         logits = self.projection3(x)
 
-        return logits, x
+        return logits, embeddings
     
     def inference(self, x): 
         
