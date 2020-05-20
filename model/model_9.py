@@ -205,7 +205,7 @@ class Parrot(nn.Module):
         outputs = [predicted_mel, post_output, predicted_stop, alignments,
                   text_hidden, audio_seq2seq_hidden, audio_seq2seq_logit, audio_seq2seq_alignments, 
                   speaker_logit_from_mel, frame_spk_embeddings_logits, speaker_logit_from_mel_hidden,
-                  text_lengths, mel_lengths, scores]
+                  text_lengths, mel_lengths, scores, frame_spk_embeddings]
 
         #outputs = [predicted_mel, post_output, predicted_stop, alignments,
         #          text_hidden, audio_seq2seq_hidden, audio_seq2seq_logit, audio_seq2seq_alignments, 

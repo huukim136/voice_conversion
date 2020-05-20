@@ -63,7 +63,7 @@ class ParrotLogger(SummaryWriter):
             text_hidden, mel_hidden,  text_logit_from_mel_hidden, \
             audio_seq2seq_alignments, \
             speaker_logit_from_mel, frame_spk_embeddings_logits, speaker_logit_from_mel_hidden, \
-            text_lengths, mel_lengths, SE_alignments = y_pred
+            text_lengths, mel_lengths, SE_alignments, frame_spk_embeddings = y_pred
 
         #predicted_mel, post_output, predicted_stop, alignments, \
         #    text_hidden, mel_hidden,  text_logit_from_mel_hidden, \
@@ -76,7 +76,7 @@ class ParrotLogger(SummaryWriter):
 
         stop_target = stop_target.reshape(stop_target.size(0), -1, int(stop_target.size(1)/predicted_stop.size(1)))
         stop_target = stop_target[:,:,0]
-        #pdb.set_trace()
+        # pdb.set_trace()
 
         # plot distribution of parameters
         #for tag, value in model.named_parameters():
@@ -89,6 +89,7 @@ class ParrotLogger(SummaryWriter):
         alignments = alignments.data.cpu().numpy()
         audio_seq2seq_alignments = audio_seq2seq_alignments.data.cpu().numpy()
         SE_alignments = SE_alignments.data.cpu().numpy()
+        frame_spk_embeddings = frame_spk_embeddings.cpu().numpy()
 
         self.add_image(
             "%s.alignment"%task,
@@ -106,6 +107,11 @@ class ParrotLogger(SummaryWriter):
         self.add_image(
             "%s.SE_alignments"%task,
             plot_alignment_to_numpy(SE_alignments[idx].T),
+            iteration, dataformats='HWC')
+
+        self.add_image(
+            "%s.frame_spk_embeddings"%task,
+            plot_alignment_to_numpy(frame_spk_embeddings[idx].T),
             iteration, dataformats='HWC')
 
         self.add_image(
