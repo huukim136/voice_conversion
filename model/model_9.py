@@ -221,10 +221,10 @@ class Parrot(nn.Module):
         input_text True or False
         mel_reference [1, mel_bins, T]
         '''
-        #pdb.set_trace()
+        # pdb.set_trace()
         text_input_padded, mel_padded, text_lengths, mel_lengths = inputs
         text_input_embedded = self.embedding(text_input_padded.long()).transpose(1, 2)
-        text_hidden = self.text_encoder.inference(text_input_embedded)
+
 
         B = text_input_padded.size(0) # B should be 1
         start_embedding = Variable(text_input_padded.data.new(B,).fill_(self.sos))
@@ -252,8 +252,10 @@ class Parrot(nn.Module):
 
         if input_text:
             hidden = self.merge_net.inference(text_hidden)
+            text_hidden = self.text_encoder.inference(text_input_embedded)
         else:
             hidden = self.merge_net.inference(audio_seq2seq_hidden)
+            text_hidden = torch.LongTensor([0])
 
         #contexts , scores = self.se_alignment(hidden, frame_spk_embeddings)
 

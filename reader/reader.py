@@ -78,34 +78,27 @@ class TextMelIDLoader(torch.utils.data.Dataset):
         '''
         #import pdb
         #pdb.set_trace()
-        # Deduce filenames
         text_path = path.replace('wav48', 'txt').replace('npy', 'phones')
         mel_path = path
         speaker_id = path.split('/')[-2]
-        # print("dfdfd",path.split('/') )
-        # print("speaker_id", speaker_id)
+
         speaker_id = speaker_id[0:4]
 
         # Load data from disk
-        text_input = self.get_text(text_path)
-        # print("text_input ", text_input)
+        try:
+            text_input = self.get_text(text_path)
+            text_input = torch.LongTensor(text_input)
+        except FileNotFoundError:
+            text_input = torch.LongTensor([500])
         mel = np.load(mel_path)
-        # print("type", type(mel))
-        # print("shape", mel.shape)
-        # mel = np.transpose(mel)
-        # spc = np.load(path)
-        # Normalize audio 
-        mel = (mel - self.mel_mean)/ self.mel_std
-        # spc = (spc - self.spc_mean_std[0]) / self.spc_mean_std[1]
-        # Format for pytorch
-        text_input = torch.LongTensor(text_input)
-        mel = torch.from_numpy(mel)
-        # print("mel shape", mel.shape)
-        # spc = torch.from_numpy(np.transpose(spc))
-        speaker_id = torch.LongTensor([sp2id[speaker_id]])
-        # print("len(speakre_list", len(seen_speakers))
 
-        # return (text_input, mel, spc, speaker_id)
+        mel = (mel - self.mel_mean)/ self.mel_std
+        # Format for pytorch
+        mel = torch.from_numpy(mel)
+        try:
+            speaker_id = torch.LongTensor([sp2id[speaker_id]])
+        except KeyError:
+            speaker_id = torch.LongTensor([500])
         return (text_input, mel, speaker_id)
         
     def get_text(self,text_path):

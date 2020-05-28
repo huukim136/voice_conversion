@@ -23,11 +23,12 @@ hparams = create_hparams()
 
 #generation list
 # hlist = '/home/jxzhang/Documents/DataSets/VCTK/list/hold_english.list'
+hlist = '/home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/inference_QOAF2CAT049to247.txt'
 tlist = '/home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/inference_280to226.txt'
 
 # use seen (tlist) or unseen list (hlist)
-test_list = tlist
-checkpoint_path='outdir_100_original_replace_layers/checkpoint_101000'
+test_list = hlist
+checkpoint_path='outdir_100_original_replace_layers/checkpoint_99000'
 # TTS or VC task?
 input_text= False
 # number of utterances for generation
@@ -115,7 +116,10 @@ def recover_wav(mel, wav_path, ismel=False,
 
 text_input, mel, speaker_id = test_set[0]
 reference_mel = mel.cuda().unsqueeze(0) 
-ref_sp = id2sp[speaker_id.item()]
+if speaker_id == 500:
+    ref_sp = 'unseen'
+else:
+    ref_sp = id2sp[speaker_id.item()]
 
 def levenshteinDistance(s1, s2):
     if len(s1) > len(s2):
@@ -141,7 +145,7 @@ with torch.no_grad():
         if i == NUM:
             break
         #import pdb
-        #pdb.set_trace()
+        # pdb.set_trace()
         sample_id = sample_list[i].split('/')[-1][1:8]
         print(('%d index %s, decoding ...'%(i,sample_id)))
 
@@ -196,8 +200,8 @@ with torch.no_grad():
         #plot_data([alignments,SE_alignment], 
         #    os.path.join(path_save, 'SE_alignment%s_ref_%s_%s.pdf'%(sample_id, ref_sp, task)))
         
-        plot_data([np.hstack([text_hidden, audio_seq2seq_hidden])], 
-            os.path.join(path_save, 'Hid_%s_ref_%s_%s.pdf'%(sample_id, ref_sp, task)))
+        # plot_data([np.hstack([text_hidden, audio_seq2seq_hidden])], 
+        #     os.path.join(path_save, 'Hid_%s_ref_%s_%s.pdf'%(sample_id, ref_sp, task)))
          
         audio_seq2seq_phids = [id2ph[id] for id in audio_seq2seq_phids[:-1]]
         target_text = y[0].data.cpu().numpy()[0]

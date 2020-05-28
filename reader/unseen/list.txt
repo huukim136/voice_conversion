@@ -1,1 +1,0 @@
-/home/hk/voice_conversion/nonparaSeq2seqVC_text-dependent_SE/reader/unseen/QOAF3CHR065.npy
